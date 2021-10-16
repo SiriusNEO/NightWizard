@@ -31,3 +31,15 @@ riscv-newlib
 
 
 注意我的版本是 `10.2` 如果出现 `cannot find -lgcc`  请修改 `build_test.sh` 版本号
+
+
+
+
+
+## vscode
+
+天灭 vscode 
+
+多文件 `iverilog`  编译语法高亮太恶心了
+
+将就着写吧（
