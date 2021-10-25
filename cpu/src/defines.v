@@ -6,27 +6,41 @@
 // constant
 `define FALSE 1'b0
 `define TRUE 1'b1
+`define ZERO_ADDR 32'h0
 `define ZERO_WORD 32'h0
 `define ZERO_REG 5'h0
 `define ZERO_RS 4'h0
 `define ZERO_ROB 4'h0
 
+// flag
+`define FLAG_READ 0
+`define FLAG_WRITE 1 
+
+// memctrl status
+`define STATUS_IDLE 0
+`define STATUS_FETCH 1
+
 // length
+`define MEMPORT_LEN 8
+
 `define INS_LEN 32
 `define ADDR_LEN 32
 `define DATA_LEN 32
-
-`define REG_LEN 5
-`define ROB_LEN 4
 
 `define OPENUM_LEN 5 
 `define OPCODE_LEN 7
 `define FUNC3_LEN 3
 `define FUNC7_LEN 7
 
+// log SIZE
+`define REG_LEN 5
+`define ROB_LEN 4
+`define LSB_LEN 4
+
 // components size
 `define REG_SIZE 32
 `define RS_SIZE  16
+`define LSB_SIZE 16
 `define ROB_SIZE 16
 
 // range

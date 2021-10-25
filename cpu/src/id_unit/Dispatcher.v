@@ -3,12 +3,13 @@
 module Dispatcher(
     input wire clk,
     input wire rst,
+    input wire rdy,
 
     // from fetcher
     input wire [`INS_LEN - 1 : 0] inst_from_if,
+    input wire [`ADDR_LEN - 1 : 0] pc_from_if,
+    input wire ok_flag_from_if,
 
-    // to decoder
-    output reg [`INS_LEN - 1 : 0] inst_to_dcd,
     // from decoder
     input wire [`OPENUM_LEN - 1 : 0] openum_from_dcd,
     input wire [`REG_LEN - 1 : 0] rd_from_dcd,
@@ -16,58 +17,93 @@ module Dispatcher(
     input wire [`REG_LEN - 1 : 0] rs2_from_dcd,
     input wire [`DATA_LEN - 1 : 0] imm_from_dcd,
 
+    // to rob
+    output reg ena_to_rob,
+    output reg [`REG_LEN - 1 : 0] rd_to_rob,
+    output reg [`DATA_LEN - 1 : 0] data_to_rob,
+    output reg [`ADDR_LEN - 1 : 0] pc_to_rob,
+    // from rob
+    input wire [`ROB_LEN : 0] rob_id_from_rob,
+
     // to reg
     output reg [`REG_LEN - 1 : 0] rs1_to_reg,
     output reg [`REG_LEN - 1 : 0] rs2_to_reg, 
     // from reg
     input wire [`DATA_LEN -1 : 0] V1_from_reg,
     input wire [`DATA_LEN -1 : 0] V2_from_reg,
-    input wire [`ROB_LEN -1 : 0] Q1_from_reg,
-    input wire [`ROB_LEN -1 : 0] Q2_from_reg,
+    input wire [`ROB_LEN : 0] Q1_from_reg,
+    input wire [`ROB_LEN : 0] Q2_from_reg,
 
     // to rs
+    output reg ena_to_rs,
     output reg [`OPENUM_LEN - 1 : 0] openum_to_rs,
     output reg [`DATA_LEN -1 : 0] V1_to_rs,
     output reg [`DATA_LEN -1 : 0] V2_to_rs,
-    output reg [`ROB_LEN -1 : 0] Q1_to_rs,
-    output reg [`ROB_LEN -1 : 0] Q2_to_rs,
+    output reg [`ROB_LEN : 0] Q1_to_rs,
+    output reg [`ROB_LEN : 0] Q2_to_rs,
     output reg [`ADDR_LEN -1 : 0] pc_to_rs,
     output reg [`ADDR_LEN -1 : 0] imm_to_rs,
-    // from rs
-    input wire full_from_rs,
+    output reg [`ROB_LEN : 0] rob_id_to_rs,
 
-    // to lsq
-    output reg [`OPENUM_LEN - 1 : 0] openum_to_lsq,
-    output reg [`DATA_LEN -1 : 0] oprand1_to_lsq,
-    output reg [`DATA_LEN -1 : 0] oprand2_to_lsq
+    // to ls
+    output reg ena_to_lsb,
+    output reg [`OPENUM_LEN - 1 : 0] openum_to_lsb,
+    output reg [`DATA_LEN -1 : 0] V1_to_lsb,
+    output reg [`DATA_LEN -1 : 0] V2_to_lsb,
+    output reg [`ROB_LEN : 0] Q1_to_lsb,
+    output reg [`ROB_LEN : 0] Q2_to_lsb,
+    output reg [`ADDR_LEN -1 : 0] imm_to_lsb,
+    output reg [`ROB_LEN : 0] rob_id_to_lsb
 );
 
-always @(posedge clk, posedge rst) begin
-   
-   if (rst == `TRUE) begin
-   end else begin
-        // call dcd
-        inst_to_dcd = inst_from_if;
-
-        // call reg
-        rs1_to_reg = rs1_from_dcd;
-        rs2_to_reg = rs2_from_dcd; 
-
-        // to lsq
-        if (openum_from_dcd >= `OPENUM_LB && openum_from_dcd <= `OPENUM_SW) begin
-            
-        end 
-        // to rs
-        else if (openum_from_dcd != `OPENUM_NOP) begin
-            openum_to_rs <= openum_from_dcd;
-            V1_to_rs <= V1_from_reg;
-            V1_to_rs <= V2_from_reg;
-            Q1_to_rs <= Q1_from_reg;
-            Q2_to_rs <= Q2_from_reg;
-            imm_to_rs <= imm_from_dcd;
+always @(posedge clk or posedge rst) begin
+    if (rst == `TRUE) begin
+        ena_to_rob = `FALSE;
+        ena_to_rs = `FALSE;
+        ena_to_lsb = `FALSE;
+    end    
+    else if (rdy == `TRUE) begin
+        if (ok_flag_from_if == `FALSE) begin
+            ena_to_rob = `FALSE;
+            ena_to_rs = `FALSE;
+            ena_to_lsb = `FALSE;
         end
-   end    
+        else begin
+            // call reg
+            rs1_to_reg = rs1_from_dcd;
+            rs2_to_reg = rs2_from_dcd; 
 
+            // call rob
+            ena_to_rob = `TRUE;
+            rd_to_rob = rd_from_dcd;
+            data_to_rob = `ZERO_WORD; // nothing now
+            pc_to_rob = pc_from_if;
+
+            // to ls
+            if (openum_from_dcd >= `OPENUM_LB && openum_from_dcd <= `OPENUM_SW) begin
+                ena_to_lsb <= `TRUE;
+                openum_to_lsb <= openum_from_dcd;
+                V1_to_lsb <= V1_from_reg;
+                V1_to_lsb <= V2_from_reg;
+                Q1_to_lsb <= Q1_from_reg;
+                Q2_to_lsb <= Q2_from_reg;
+                imm_to_lsb <= imm_from_dcd;
+                rob_id_to_lsb <=rob_id_from_rob;
+            end 
+            // to rs
+            else if (openum_from_dcd != `OPENUM_NOP) begin
+                ena_to_rs <= `TRUE;
+                openum_to_rs <= openum_from_dcd;
+                V1_to_rs <= V1_from_reg;
+                V1_to_rs <= V2_from_reg;
+                Q1_to_rs <= Q1_from_reg;
+                Q2_to_rs <= Q2_from_reg;
+                pc_to_rs <= pc_from_if;
+                imm_to_rs <= imm_from_dcd;
+                rob_id_to_rs <= rob_id_from_rob;
+            end
+        end
+    end    
 end    
 
 endmodule
