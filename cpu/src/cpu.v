@@ -54,7 +54,7 @@ wire [`ADDR_LEN - 1 : 0] pc_if_dsp;
 wire ok_flag_if_dsp;
 
 // fetcher and pcreg
-wire upd_if_pcr;
+wire upd_flag_if_pcr;
 wire [`ADDR_LEN - 1 : 0] pc_pcr_if;
 
 // full signal to fetcher
@@ -96,6 +96,11 @@ wire [`DATA_LEN - 1 : 0] data_dsp_rob;
 wire [`ADDR_LEN - 1 : 0] pc_dsp_rob;
 wire [`ROB_LEN : 0] rob_id_rob_dsp;
 
+wire [`ROB_LEN : 0] Q1_dsp_rob;
+wire [`ROB_LEN : 0] Q2_dsp_rob;
+wire Q1_ready_rob_dsp;
+wire Q2_ready_rob_dsp;
+
 // dispatcher and regfile
 wire [`REG_LEN - 1 : 0] rs1_dsp_reg;
 wire [`REG_LEN - 1 : 0] rs2_dsp_reg;
@@ -104,17 +109,15 @@ wire [`DATA_LEN -1 : 0] V2_reg_dsp;
 wire [`ROB_LEN : 0] Q1_reg_dsp;
 wire [`ROB_LEN : 0] Q2_reg_dsp;
 
-// regfile and rob
-wire [`ROB_LEN : 0] Q1_reg_rob;
-wire [`ROB_LEN : 0] Q2_reg_rob;
-wire Q1_ready_rob_reg;
-wire Q2_ready_rob_reg;
-
 // commit
+wire commit_flag_rob_reg_pcr;
 // rob to reg
 wire [`REG_LEN - 1 : 0] rd_rob_reg;
 wire [`ROB_LEN : 0] Q_rob_reg;
 wire [`DATA_LEN - 1 : 0] V_rob_reg;
+
+// rob to pcr
+wire [`ADDR_LEN - 1 : 0] target_pc_rob_pcr;
 
 // rs and rs_ex
 wire [`OPENUM_LEN - 1 : 0] openum_rs_ex;
@@ -126,13 +129,20 @@ wire [`ADDR_LEN - 1 : 0] pc_rs_ex;
 // ls and ls_ex
 
 // cdb
+wire valid_cdb;
 wire [`ROB_LEN : 0] rob_id_cdb;
 wire [`DATA_LEN - 1 : 0] result_cdb;
 wire [`ADDR_LEN - 1 : 0] target_pc_cdb;
+wire jump_flag_cdb;
 
 PcReg pcReg(
+  .clk(clk_in),
   .rst(rst_in),
-  .update(upd_if_pcr),
+  .upd_flag_from_if(upd_flag_if_pcr),
+  
+  .commit_flag_from_rob(commit_flag_rob_reg_pcr),
+  .target_pc_from_rob(target_pc_rob_pcr),
+
   .pc(pc_pcr_if)
 );
 
@@ -154,7 +164,7 @@ Fetcher fetcher(
   .ok_flag_to_dsp(ok_flag_if_dsp),
 
   .pc_from_pcr(pc_pcr_if),
-  .upd_to_pcr(upd_if_pcr)
+  .upd_flag_to_pcr(upd_flag_if_pcr)
 );
 
 Dispatcher dispatcher(
@@ -172,6 +182,14 @@ Dispatcher dispatcher(
   .rs1_from_dcd(rs1_dcd_dsp),
   .rs2_from_dcd(rs2_dcd_dsp),
   .imm_from_dcd(imm_dcd_dsp),
+
+  // query Q1 Q2 ready in rob
+  // to rob
+  .Q1_to_rob(Q1_dsp_rob),
+  .Q2_to_rob(Q2_dsp_rob),   
+  // from rob
+  .Q1_ready_from_rob(Q1_ready_rob_dsp),
+  .Q2_ready_from_rob(Q2_ready_rob_dsp),
 
   // to rob
   .ena_to_rob(ena_dsp_rob),
@@ -256,36 +274,40 @@ RS_EX rs_ex(
   .pc(pc_rs_ex),
   
   .result(result_cdb),
-  .target_pc(target_pc_cdb)
+  .target_pc(target_pc_cdb),
+  .jump_flag(jump_flag_cdb),
+  .valid(valid_cdb)
 );
 
 ReOrderBuffer reOrderBuffer(
   .clk(clk_in),
   .rst(rst_in),
 
-  // reply to reg_ready query
-  // from reg
-  .Q1_from_reg(Q1_reg_rob),
-  .Q2_from_reg(Q2_reg_rob),
-  // to reg
-  .Q1_ready_to_reg(Q1_ready_rob_reg),
-  .Q2_ready_to_reg(Q2_ready_rob_reg),
+  // reply to dsp_ready query
+  // from dsp
+  .Q1_from_dsp(Q1_dsp_rob),
+  .Q2_from_dsp(Q2_dsp_rob),
+  // to dsp
+  .Q1_ready_to_dsp(Q1_ready_rob_dsp),
+  .Q2_ready_to_dsp(Q2_ready_rob_dsp),
 
   // dsp allocate to rob
   // from dsp
   .ena_from_dsp(ena_dsp_rob),
   .rd_from_dsp(rd_dsp_rob),
-  .pc_from_dsp(pc_dsp_rob),
   // to dsp
   .rob_id_to_dsp(rob_id_rob_dsp),
 
   // update rob by cdb
   // from cdb
+  .valid_from_cdb(valid_cdb),
   .rob_id_from_cdb(rob_id_cdb),
   .result_from_cdb(result_cdb),
+  .jump_flag_from_cdb(jump_flag_cdb),
 
   // commit
   // to reg
+  .commit_flag_to_reg_pcr(commit_flag_rob_reg_pcr),
   .rd_to_reg(rd_rob_reg),
   .Q_to_reg(Q_rob_reg),
   .V_to_reg(V_rob_reg)
@@ -326,13 +348,13 @@ RegFile regFile(
   .Q1_to_dsp(Q1_reg_dsp),
   .Q2_to_dsp(Q2_reg_dsp),
 
-  // to rob
-  .Q1_to_rob(Q1_reg_rob),
-  .Q2_to_rob(Q2_reg_rob),
-  
-  // from rob
-  .Q1_ready_from_rob(Q1_ready_rob_reg),
-  .Q2_ready_from_rob(Q2_ready_rob_reg)
+  // commit from rob
+  .commit_flag_from_rob(commit_flag_rob_reg_pcr),
+  .rd_from_rob(rd_rob_reg),
+  .Q_from_rob(Q_rob_reg),
+  .V_from_rob(V_rob_reg),
+
+  .debug_flag(`TRUE)
 );
 
 always @(posedge clk_in)

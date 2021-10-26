@@ -27,7 +27,7 @@ module Fetcher(
     input wire full_from_rob,
 
     // to pc 
-    output reg upd_to_pcr,
+    output reg upd_flag_to_pcr,
     // from pc
     input wire [`ADDR_LEN - 1 : 0] pc_from_pcr
 );
@@ -50,7 +50,7 @@ always @(posedge clk) begin
             inst_to_dcd <= inst_from_mc;
             busy <= `FALSE;
             ok_flag_to_dsp <= `TRUE;
-            upd_to_pcr <= `TRUE;
+            upd_flag_to_pcr <= `TRUE;
         end
         else begin
             ok_flag_to_dsp <= `FALSE;
@@ -64,7 +64,7 @@ always @(posedge clk) begin
             pc_to_mc <= pc_from_pcr;
             busy <= `TRUE;
             ok_flag_to_dsp <= `FALSE;
-            upd_to_pcr <= `FALSE;
+            upd_flag_to_pcr <= `FALSE;
         end
     end
 end

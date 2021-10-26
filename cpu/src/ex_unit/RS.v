@@ -24,7 +24,12 @@ module RS (
     output reg [`DATA_LEN - 1 : 0] imm_to_ex,
 
     // to cdb
-    output reg [`ROB_LEN : 0] rob_id_to_cdb
+    output reg [`ROB_LEN : 0] rob_id_to_cdb,
+
+    // from cdb
+    input wire valid_from_cdb,
+    input wire [`ROB_LEN : 0] rob_id_from_cdb,
+    input wire [`DATA_LEN - 1 : 0] result_from_cdb
 );
 
 // rs store
@@ -75,13 +80,33 @@ always @(posedge clk) begin
         end     
         
         // exec
-        openum_to_ex = openum[issue_index];
-        V1_to_ex = V1[issue_index];
-        V2_to_ex = V2[issue_index];
-        pc_to_ex = pc[issue_index];
-        imm_to_ex = imm[issue_index];
+        if (issue_index == -1) begin
+            openum_to_ex <= `OPENUM_NOP;
+        end
+        else begin
+            busy[issue_index] = `FALSE; 
+            openum_to_ex = openum[issue_index];
+            V1_to_ex = V1[issue_index];
+            V2_to_ex = V2[issue_index];
+            pc_to_ex = pc[issue_index];
+            imm_to_ex = imm[issue_index];
+            // cdb
+            rob_id_to_cdb = rob_id[issue_index];
+        end
 
-        rob_id_to_cdb = rob_id[issue_index];
+        if (valid_from_cdb == `TRUE) begin
+            // update
+            for (i = 0; i < `RS_SIZE; i++) begin
+                if (Q1[i] == rob_id_from_cdb) begin
+                    V1[i] = result_from_cdb;
+                    Q1[i] = `ZERO_ROB;
+                end
+                else if (Q2[i] == rob_id_from_cdb) begin
+                    V2[i] = result_from_cdb;
+                    Q2[i] = `ZERO_ROB;
+                end
+            end
+        end
 
         if (ena_from_dsp == `TRUE) begin
             // insert to rs - no full

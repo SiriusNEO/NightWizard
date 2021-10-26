@@ -1,7 +1,12 @@
 `include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
 module PcReg (
+    input wire clk,
     input wire rst,
-    input wire update,
+
+    input wire upd_flag_from_if,
+    input wire commit_flag_from_rob,
+    input wire [`ADDR_LEN - 1 : 0] target_pc_from_rob, 
+
     output reg [`ADDR_LEN - 1 : 0] pc
 );
 
@@ -12,16 +17,23 @@ initial begin
     next_pc = `ZERO_ADDR + 4;
 end
 
-always @(posedge update or posedge rst) begin
+always @(posedge clk) begin
     if (rst == `TRUE) begin
         // pc = `ZERO_ADDR;
         // next_pc = `ZERO_ADDR + 4;
-        pc = 32'h1188;
-        next_pc = 32'h118c;
+        pc = 32'h11d8;
+        next_pc = 32'h11dc;
     end
     else begin
-        pc = next_pc;
-        next_pc = pc + 4;
+        if (commit_flag_from_rob == `TRUE) begin
+            pc = target_pc_from_rob;
+            next_pc = pc + 4;
+        end
+        else
+        if (upd_flag_from_if == `TRUE) begin
+            pc = next_pc;
+            next_pc = pc + 4;
+        end
     end
 end
 

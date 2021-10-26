@@ -17,6 +17,15 @@ module Dispatcher(
     input wire [`REG_LEN - 1 : 0] rs2_from_dcd,
     input wire [`DATA_LEN - 1 : 0] imm_from_dcd,
 
+    // query Q1 Q2 ready in rob
+    // to rob
+    output wire [`ROB_LEN : 0] Q1_to_rob,
+    output wire [`ROB_LEN : 0] Q2_to_rob,   
+    // from rob
+    input wire Q1_ready_from_rob,
+    input wire Q2_ready_from_rob,
+
+    // rob alloc
     // to rob
     output reg ena_to_rob,
     output reg [`REG_LEN - 1 : 0] rd_to_rob,
@@ -56,6 +65,9 @@ module Dispatcher(
     output reg [`ROB_LEN : 0] rob_id_to_lsb
 );
 
+assign Q1_to_rob = Q1_from_reg;
+assign Q2_to_rob = Q2_from_reg;
+
 always @(posedge clk or posedge rst) begin
     if (rst == `TRUE) begin
         ena_to_rob = `FALSE;
@@ -81,26 +93,26 @@ always @(posedge clk or posedge rst) begin
 
             // to ls
             if (openum_from_dcd >= `OPENUM_LB && openum_from_dcd <= `OPENUM_SW) begin
-                ena_to_lsb <= `TRUE;
-                openum_to_lsb <= openum_from_dcd;
-                V1_to_lsb <= V1_from_reg;
-                V1_to_lsb <= V2_from_reg;
-                Q1_to_lsb <= Q1_from_reg;
-                Q2_to_lsb <= Q2_from_reg;
-                imm_to_lsb <= imm_from_dcd;
-                rob_id_to_lsb <=rob_id_from_rob;
+                ena_to_lsb = `TRUE;
+                openum_to_lsb = openum_from_dcd;
+                V1_to_lsb = Q1_ready_from_rob ? V1_from_reg : `ZERO_WORD;
+                V2_to_lsb = Q2_ready_from_rob ? V2_from_reg : `ZERO_WORD;
+                Q1_to_lsb = Q1_from_reg;
+                Q2_to_lsb = Q2_from_reg;
+                imm_to_lsb = imm_from_dcd;
+                rob_id_to_lsb =rob_id_from_rob;
             end 
             // to rs
             else if (openum_from_dcd != `OPENUM_NOP) begin
-                ena_to_rs <= `TRUE;
-                openum_to_rs <= openum_from_dcd;
-                V1_to_rs <= V1_from_reg;
-                V1_to_rs <= V2_from_reg;
-                Q1_to_rs <= Q1_from_reg;
-                Q2_to_rs <= Q2_from_reg;
-                pc_to_rs <= pc_from_if;
-                imm_to_rs <= imm_from_dcd;
-                rob_id_to_rs <= rob_id_from_rob;
+                ena_to_rs = `TRUE;
+                openum_to_rs = openum_from_dcd;
+                V1_to_rs = V1_from_reg;
+                V2_to_rs = V2_from_reg;
+                Q1_to_rs = Q1_from_reg;
+                Q2_to_rs = Q2_from_reg;
+                pc_to_rs = pc_from_if;
+                imm_to_rs = imm_from_dcd;
+                rob_id_to_rs = rob_id_from_rob;
             end
         end
     end    
