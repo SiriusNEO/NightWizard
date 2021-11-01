@@ -1,4 +1,5 @@
 `include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
+
 module PcReg (
     input wire clk,
     input wire rst,
@@ -21,8 +22,8 @@ always @(posedge clk) begin
     if (rst == `TRUE) begin
         // pc = `ZERO_ADDR;
         // next_pc = `ZERO_ADDR + 4;
-        pc = 32'h11d8;
-        next_pc = 32'h11dc;
+        pc = 32'h1188;
+        next_pc = 32'h118c;
     end
     else begin
         if (commit_flag_from_rob == `TRUE) begin

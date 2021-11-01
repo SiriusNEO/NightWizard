@@ -14,14 +14,16 @@ module RegFile (
     output wire [`ROB_LEN : 0] Q1_to_dsp,
     output wire [`ROB_LEN : 0] Q2_to_dsp,
 
+    // alloc from dsp
+    input wire ena_from_dsp,
+    input wire [`REG_LEN - 1 : 0] rd_from_dsp,
+    input wire [`ROB_LEN : 0] Q_from_dsp,
+
     // commit from rob
     input wire commit_flag_from_rob,
     input wire [`REG_LEN - 1 : 0] rd_from_rob,
     input wire [`ROB_LEN : 0] Q_from_rob,
-    input wire [`DATA_LEN - 1 : 0] V_from_rob,
-
-    // debug port
-    input wire debug_flag
+    input wire [`DATA_LEN - 1 : 0] V_from_rob
 );
 
 // reg store
@@ -38,20 +40,25 @@ assign V2_to_dsp = V[rs2_from_dsp];
 
 always @(posedge clk) begin
     if (rst == `TRUE) begin
-        for (i = 0; i < `REG_SIZE; i++) begin
+        for (i = 0; i < `REG_SIZE; i=i+1) begin
             Q[i] = `ZERO_ROB;
             V[i] = `ZERO_WORD;
         end
     end
     else begin
+        if (ena_from_dsp == `TRUE) begin
+            Q[rd_from_dsp] = Q_from_dsp;
+            V[rd_from_dsp] = `ZERO_WORD;
+        end
+
         if (commit_flag_from_rob == `TRUE) begin
             V[rd_from_rob] = V_from_rob;
             if (Q[rd_from_rob] == Q_from_rob)
                 Q[rd_from_rob] = `ZERO_ROB;
-            if (debug_flag == `TRUE) begin
-                $display("Q", Q[0], Q[1], Q[2], Q[3], Q[4], Q[5], Q[6], Q[7], Q[8], Q[9], Q[10], Q[11], Q[12], Q[13], Q[14], V[15]);
-                $display("V", V[0], V[1], V[2], V[3], V[4], V[5], V[6], V[7], V[8], V[9], V[10], V[11], V[12], V[13], V[14], V[15]);
-            end
+`ifdef DEBUG
+                $display("rf Q", Q[0], Q[1], Q[2], Q[3], Q[4], Q[5], Q[6], Q[7], Q[8], Q[9], Q[10], Q[11], Q[12], Q[13], Q[14], Q[15]);
+                $display("rf V", V[0], V[1], V[2], V[3], V[4], V[5], V[6], V[7], V[8], V[9], V[10], V[11], V[12], V[13], V[14], V[15]);
+`endif
         end
     end
 end   

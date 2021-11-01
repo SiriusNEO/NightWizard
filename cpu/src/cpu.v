@@ -11,6 +11,8 @@
 
 `include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/ex_unit/RS.v"
 `include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/ex_unit/RS_EX.v"
+`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/ex_unit/LSBuffer.v"
+`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/ex_unit/LS_EX.v"
 
 `include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/pub_unit/MemCtrl.v"
 `include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/pub_unit/RegFile.v"
@@ -109,15 +111,26 @@ wire [`DATA_LEN -1 : 0] V2_reg_dsp;
 wire [`ROB_LEN : 0] Q1_reg_dsp;
 wire [`ROB_LEN : 0] Q2_reg_dsp;
 
+wire ena_dsp_reg;
+wire [`REG_LEN - 1 : 0] rd_dsp_reg;
+wire [`ROB_LEN : 0] Q_dsp_reg;
+
 // commit
-wire commit_flag_rob_reg_pcr;
+wire commit_flag_bus;
+
 // rob to reg
 wire [`REG_LEN - 1 : 0] rd_rob_reg;
 wire [`ROB_LEN : 0] Q_rob_reg;
 wire [`DATA_LEN - 1 : 0] V_rob_reg;
 
 // rob to pcr
+wire jump_flag_rob_pcr;
 wire [`ADDR_LEN - 1 : 0] target_pc_rob_pcr;
+
+// rob and lsb
+wire [`ROB_LEN : 0] rob_id_rob_lsb;
+
+wire [`ROB_LEN : 0] store_rob_id_lsb_rob;
 
 // rs and rs_ex
 wire [`OPENUM_LEN - 1 : 0] openum_rs_ex;
@@ -127,20 +140,38 @@ wire [`DATA_LEN - 1 : 0] imm_rs_ex;
 wire [`ADDR_LEN - 1 : 0] pc_rs_ex;
 
 // ls and ls_ex
+wire ena_ls_ex;
+wire busy_ex_ls;
+wire [`OPENUM_LEN - 1 : 0] openum_ls_ex;
+wire [`ADDR_LEN - 1 : 0] mem_addr_ls_ex;
+wire [`DATA_LEN - 1 : 0] store_value_ls_ex;
+
+// ls_ex and memctrl
+wire ena_ex_mc;
+wire [`ADDR_LEN - 1 : 0] addr_ex_mc;
+wire [`DATA_LEN - 1 : 0] data_ex_mc;
+wire wr_flag_ex_mc;
+wire [2: 0] size_ex_mc;
+wire ok_flag_mc_ex;
+wire [`DATA_LEN - 1 : 0] data_mc_ex;
 
 // cdb
-wire valid_cdb;
-wire [`ROB_LEN : 0] rob_id_cdb;
-wire [`DATA_LEN - 1 : 0] result_cdb;
-wire [`ADDR_LEN - 1 : 0] target_pc_cdb;
-wire jump_flag_cdb;
+wire valid_rs_cdb;
+wire [`ROB_LEN : 0] rob_id_rs_cdb;
+wire [`DATA_LEN - 1 : 0] result_rs_cdb;
+wire [`ADDR_LEN - 1 : 0] target_pc_rs_cdb;
+wire jump_flag_rs_cdb;
+
+wire valid_ls_cdb;
+wire [`ROB_LEN : 0] rob_id_ls_cdb;
+wire [`DATA_LEN - 1 : 0] result_ls_cdb;
 
 PcReg pcReg(
   .clk(clk_in),
   .rst(rst_in),
   .upd_flag_from_if(upd_flag_if_pcr),
   
-  .commit_flag_from_rob(commit_flag_rob_reg_pcr),
+  .commit_flag_from_rob(commit_flag_bus),
   .target_pc_from_rob(target_pc_rob_pcr),
 
   .pc(pc_pcr_if)
@@ -207,6 +238,11 @@ Dispatcher dispatcher(
   .Q1_from_reg(Q1_reg_dsp),
   .Q2_from_reg(Q2_reg_dsp),
 
+  // dsp alloc to reg
+  .ena_to_reg(ena_dsp_reg),
+  .rd_to_reg(rd_dsp_reg),
+  .Q_to_reg(Q_dsp_reg),
+
   // to rs
   .ena_to_rs(ena_dsp_rs),
   .openum_to_rs(openum_dsp_rs),
@@ -219,6 +255,7 @@ Dispatcher dispatcher(
   .rob_id_to_rs(rob_id_dsp_rs),
 
   // to ls
+  .ena_to_lsb(ena_dsp_lsb),
   .openum_to_lsb(openum_dsp_lsb),
   .V1_to_lsb(V1_dsp_lsb),
   .V2_to_lsb(V2_dsp_lsb),
@@ -263,7 +300,7 @@ RS rs(
   .imm_to_ex(imm_rs_ex),
 
   // to cdb
-  .rob_id_to_cdb(rob_id_cdb)
+  .rob_id_to_cdb(rob_id_rs_cdb)
 );
 
 RS_EX rs_ex(
@@ -273,10 +310,82 @@ RS_EX rs_ex(
   .imm(imm_rs_ex),
   .pc(pc_rs_ex),
   
-  .result(result_cdb),
-  .target_pc(target_pc_cdb),
-  .jump_flag(jump_flag_cdb),
-  .valid(valid_cdb)
+  .result(result_rs_cdb),
+  .target_pc(target_pc_rs_cdb),
+  .jump_flag(jump_flag_rs_cdb),
+  .valid(valid_rs_cdb)
+);
+
+LSBuffer lsBuffer(
+  .clk(clk_in),
+  .rst(rst_in),
+  // from dsp
+  .ena_from_dsp(ena_dsp_lsb),
+  .openum_from_dsp(openum_dsp_lsb),
+  .V1_from_dsp(V1_dsp_lsb),
+  .V2_from_dsp(V2_dsp_lsb),
+  .Q1_from_dsp(Q1_dsp_lsb),
+  .Q2_from_dsp(Q2_dsp_lsb),
+  .imm_from_dsp(imm_dsp_lsb),
+  .rob_id_from_dsp(rob_id_dsp_lsb),
+    
+  // to if
+  .full_to_if(full_lsb_if),
+
+  // to ls ex
+  .ena_to_ex(ena_ls_ex),
+  .openum_to_ex(openum_ls_ex),
+  .mem_addr_to_ex(mem_addr_ls_ex),
+  .store_value_to_ex(store_value_ls_ex),
+  // to cdb
+  .rob_id_to_cdb(rob_id_ls_cdb),
+
+  // from ls ex
+  .busy_from_ex(busy_ex_ls),
+
+  .store_rob_id_to_rob(store_rob_id_lsb_rob),
+
+  // update when commit
+  // from rob
+  .commit_flag_from_rob(commit_flag_bus),
+  .rob_id_from_rob(rob_id_rob_lsb),
+
+  // from rs cdb
+  .valid_from_rs_cdb(valid_rs_cdb),
+  .rob_id_from_rs_cdb(rob_id_rs_cdb),
+  .result_from_rs_cdb(result_rs_cdb),
+
+  // from ls cdb
+  .valid_from_ls_cdb(valid_ls_cdb),
+  .rob_id_from_ls_cdb(rob_id_ls_cdb),
+  .result_from_ls_cdb(result_ls_cdb)
+);
+
+LS_EX ls_ex(
+  .clk(clk_in),
+  .rst(rst_in),
+  .ena(ena_ls_ex),
+  .openum(openum_ls_ex),
+  .mem_addr(mem_addr_ls_ex),
+  .store_value(store_value_ls_ex),
+
+  // lsb
+  .busy_to_lsb(busy_ex_ls),
+
+  // port with mc
+  .ena_to_mc(ena_ex_mc),
+
+  .addr_to_mc(addr_ex_mc),
+  .data_to_mc(data_ex_mc),
+  .wr_flag_to_mc(wr_flag_ex_mc),
+  .size_to_mc(size_ex_mc),
+  
+  .ok_flag_from_mc(ok_flag_mc_ex),
+  .data_from_mc(data_mc_ex),
+
+  // to cdb
+  .valid(valid_ls_cdb),
+  .result(result_ls_cdb)
 );
 
 ReOrderBuffer reOrderBuffer(
@@ -298,19 +407,34 @@ ReOrderBuffer reOrderBuffer(
   // to dsp
   .rob_id_to_dsp(rob_id_rob_dsp),
 
+  // to if
+  .full_to_if(full_rob_if),
+
   // update rob by cdb
   // from cdb
-  .valid_from_cdb(valid_cdb),
-  .rob_id_from_cdb(rob_id_cdb),
-  .result_from_cdb(result_cdb),
-  .jump_flag_from_cdb(jump_flag_cdb),
+  .valid_from_rs_cdb(valid_rs_cdb),
+  .rob_id_from_rs_cdb(rob_id_rs_cdb),
+  .result_from_rs_cdb(result_rs_cdb),
+  .jump_flag_from_rs_cdb(jump_flag_rs_cdb),
+
+  .valid_from_ls_cdb(valid_ls_cdb),
+  .rob_id_from_ls_cdb(rob_id_ls_cdb),
+  .result_from_ls_cdb(result_ls_cdb),
+
+  // from lsb
+  .store_rob_id_from_lsb(store_rob_id_lsb_rob),
 
   // commit
   // to reg
-  .commit_flag_to_reg_pcr(commit_flag_rob_reg_pcr),
+  .commit_flag(commit_flag_bus),
   .rd_to_reg(rd_rob_reg),
   .Q_to_reg(Q_rob_reg),
-  .V_to_reg(V_rob_reg)
+  .V_to_reg(V_rob_reg),
+  // to pcr
+  .jump_flag_to_pcr(jump_flag_rob_pcr),
+  .target_pc_to_pcr(target_pc_rob_pcr),
+  // to lsb
+  .rob_id_to_lsb(rob_id_rob_lsb)
 );
 
 MemCtrl memCtrl(
@@ -331,7 +455,16 @@ MemCtrl memCtrl(
   .pc_from_if(pc_if_mc),
   .ena_from_if(ena_if_mc),
   .ok_flag_to_if(ok_flag_mc_if),
-  .inst_to_if(inst_mc_if)
+  .inst_to_if(inst_mc_if),
+
+  // with ls ex
+  .addr_from_lsex(addr_ex_mc),
+  .write_data_from_lsex(data_ex_mc),
+  .ena_from_lsex(ena_ex_mc),
+  .wr_flag_from_lsex(wr_flag_ex_mc),
+  .size_from_lsex(size_ex_mc),
+  .ok_flag_to_lsex(ok_flag_mc_ex),
+  .load_data_to_lsex(data_mc_ex)
 );
 
 RegFile regFile(
@@ -348,13 +481,16 @@ RegFile regFile(
   .Q1_to_dsp(Q1_reg_dsp),
   .Q2_to_dsp(Q2_reg_dsp),
 
+  // dsp alloc to reg
+  .ena_from_dsp(ena_dsp_reg),
+  .rd_from_dsp(rd_dsp_reg),
+  .Q_from_dsp(Q_dsp_reg),
+
   // commit from rob
-  .commit_flag_from_rob(commit_flag_rob_reg_pcr),
+  .commit_flag_from_rob(commit_flag_bus),
   .rd_from_rob(rd_rob_reg),
   .Q_from_rob(Q_rob_reg),
-  .V_from_rob(V_rob_reg),
-
-  .debug_flag(`TRUE)
+  .V_from_rob(V_rob_reg)
 );
 
 always @(posedge clk_in)

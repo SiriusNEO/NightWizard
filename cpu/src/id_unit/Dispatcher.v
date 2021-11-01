@@ -34,6 +34,7 @@ module Dispatcher(
     // from rob
     input wire [`ROB_LEN : 0] rob_id_from_rob,
 
+    // query from reg
     // to reg
     output reg [`REG_LEN - 1 : 0] rs1_to_reg,
     output reg [`REG_LEN - 1 : 0] rs2_to_reg, 
@@ -42,6 +43,11 @@ module Dispatcher(
     input wire [`DATA_LEN -1 : 0] V2_from_reg,
     input wire [`ROB_LEN : 0] Q1_from_reg,
     input wire [`ROB_LEN : 0] Q2_from_reg,
+
+    // reg alloc
+    output reg ena_to_reg, 
+    output reg [`REG_LEN - 1 : 0] rd_to_reg,
+    output reg [`ROB_LEN : 0] Q_to_reg,
 
     // to rs
     output reg ena_to_rs,
@@ -79,17 +85,23 @@ always @(posedge clk or posedge rst) begin
             ena_to_rob = `FALSE;
             ena_to_rs = `FALSE;
             ena_to_lsb = `FALSE;
+            ena_to_reg = `FALSE;
         end
         else begin
-            // call reg
+            // query reg
             rs1_to_reg = rs1_from_dcd;
             rs2_to_reg = rs2_from_dcd; 
 
-            // call rob
+            // rob alloc
             ena_to_rob = `TRUE;
             rd_to_rob = rd_from_dcd;
             data_to_rob = `ZERO_WORD; // nothing now
             pc_to_rob = pc_from_if;
+
+            // reg alloc
+            ena_to_reg = `TRUE;
+            rd_to_reg = rd_from_dcd;
+            Q_to_reg = rob_id_from_rob;
 
             // to ls
             if (openum_from_dcd >= `OPENUM_LB && openum_from_dcd <= `OPENUM_SW) begin
