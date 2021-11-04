@@ -4,7 +4,6 @@
 `include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
 
 `include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/if_unit/Fetcher.v"
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/if_unit/PcReg.v"
 
 `include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/id_unit/Dispatcher.v"
 `include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/id_unit/Decoder.v"
@@ -48,16 +47,12 @@ module cpu(
 // fetcher and memctrl
 wire [`ADDR_LEN - 1 : 0] pc_if_mc;
 wire [`INS_LEN - 1 : 0] inst_mc_if;
-wire ena_if_mc, ok_flag_mc_if;
+wire ena_if_mc, ok_flag_mc_if, drop_flag_if_mc;
 
 // fetcher and dispatcher
 wire [`INS_LEN - 1 : 0] inst_if_dsp;
 wire [`ADDR_LEN - 1 : 0] pc_if_dsp;
 wire ok_flag_if_dsp;
-
-// fetcher and pcreg
-wire upd_flag_if_pcr;
-wire [`ADDR_LEN - 1 : 0] pc_pcr_if;
 
 // full signal to fetcher
 wire full_rs_if, full_lsb_if, full_rob_if;
@@ -117,15 +112,15 @@ wire [`ROB_LEN : 0] Q_dsp_reg;
 
 // commit
 wire commit_flag_bus;
+wire commit_jump_flag_bus;
 
 // rob to reg
 wire [`REG_LEN - 1 : 0] rd_rob_reg;
 wire [`ROB_LEN : 0] Q_rob_reg;
 wire [`DATA_LEN - 1 : 0] V_rob_reg;
 
-// rob to pcr
-wire jump_flag_rob_pcr;
-wire [`ADDR_LEN - 1 : 0] target_pc_rob_pcr;
+// rob to if
+wire [`ADDR_LEN - 1 : 0] target_pc_rob_if;
 
 // rob and lsb
 wire [`ROB_LEN : 0] rob_id_rob_lsb;
@@ -166,17 +161,6 @@ wire valid_ls_cdb;
 wire [`ROB_LEN : 0] rob_id_ls_cdb;
 wire [`DATA_LEN - 1 : 0] result_ls_cdb;
 
-PcReg pcReg(
-  .clk(clk_in),
-  .rst(rst_in),
-  .upd_flag_from_if(upd_flag_if_pcr),
-  
-  .commit_flag_from_rob(commit_flag_bus),
-  .target_pc_from_rob(target_pc_rob_pcr),
-
-  .pc(pc_pcr_if)
-);
-
 Fetcher fetcher(
   .clk(clk_in),
   .rst(rst_in),
@@ -186,16 +170,19 @@ Fetcher fetcher(
 
   .pc_to_mc(pc_if_mc),
   .ena_to_mc(ena_if_mc),
+  .drop_flag_to_mc(drop_flag_if_mc),
 
   .ok_flag_from_mc(ok_flag_mc_if),
   .inst_from_mc(inst_mc_if),
 
-  .inst_to_dsp(inst_if_dsp),
   .pc_to_dsp(pc_if_dsp),
   .ok_flag_to_dsp(ok_flag_if_dsp),
 
-  .pc_from_pcr(pc_pcr_if),
-  .upd_flag_to_pcr(upd_flag_if_pcr)
+  .full_from_rs(full_rs_if), .full_from_lsb(full_lsb_if), .full_from_rob(full_rob_if),
+
+  .commit_flag_from_rob(commit_flag_bus),
+  .commit_jump_flag_from_rob(commit_jump_flag_bus),
+  .target_pc_from_rob(target_pc_rob_if)
 );
 
 Dispatcher dispatcher(
@@ -204,7 +191,6 @@ Dispatcher dispatcher(
   .rdy(rdy_in),
 
   .ok_flag_from_if(ok_flag_if_dsp),
-  .inst_from_if(inst_if_dsp),
   .pc_from_if(pc_if_dsp),
 
   // decoder
@@ -292,6 +278,8 @@ RS rs(
   .imm_from_dsp(imm_dsp_rs),
   .rob_id_from_dsp(rob_id_dsp_rs),
 
+  .full_to_if(full_rs_if),
+  
   // to ex
   .openum_to_ex(openum_rs_ex),
   .V1_to_ex(V1_rs_ex),
@@ -300,7 +288,9 @@ RS rs(
   .imm_to_ex(imm_rs_ex),
 
   // to cdb
-  .rob_id_to_cdb(rob_id_rs_cdb)
+  .rob_id_to_cdb(rob_id_rs_cdb),
+
+  .commit_jump_flag_from_rob(commit_jump_flag_bus)
 );
 
 RS_EX rs_ex(
@@ -358,7 +348,9 @@ LSBuffer lsBuffer(
   // from ls cdb
   .valid_from_ls_cdb(valid_ls_cdb),
   .rob_id_from_ls_cdb(rob_id_ls_cdb),
-  .result_from_ls_cdb(result_ls_cdb)
+  .result_from_ls_cdb(result_ls_cdb),
+
+  .commit_jump_flag_from_rob(commit_jump_flag_bus)
 );
 
 LS_EX ls_ex(
@@ -415,6 +407,7 @@ ReOrderBuffer reOrderBuffer(
   .valid_from_rs_cdb(valid_rs_cdb),
   .rob_id_from_rs_cdb(rob_id_rs_cdb),
   .result_from_rs_cdb(result_rs_cdb),
+  .target_pc_from_rs_cdb(target_pc_rs_cdb),
   .jump_flag_from_rs_cdb(jump_flag_rs_cdb),
 
   .valid_from_ls_cdb(valid_ls_cdb),
@@ -425,14 +418,14 @@ ReOrderBuffer reOrderBuffer(
   .store_rob_id_from_lsb(store_rob_id_lsb_rob),
 
   // commit
+  .commit_jump_flag(commit_jump_flag_bus),
   // to reg
   .commit_flag(commit_flag_bus),
   .rd_to_reg(rd_rob_reg),
   .Q_to_reg(Q_rob_reg),
   .V_to_reg(V_rob_reg),
-  // to pcr
-  .jump_flag_to_pcr(jump_flag_rob_pcr),
-  .target_pc_to_pcr(target_pc_rob_pcr),
+  // to if
+  .target_pc_to_if(target_pc_rob_if),
   // to lsb
   .rob_id_to_lsb(rob_id_rob_lsb)
 );
@@ -454,6 +447,7 @@ MemCtrl memCtrl(
   // with fetcher
   .pc_from_if(pc_if_mc),
   .ena_from_if(ena_if_mc),
+  .drop_flag_from_if(drop_flag_if_mc),
   .ok_flag_to_if(ok_flag_mc_if),
   .inst_to_if(inst_mc_if),
 
@@ -492,21 +486,5 @@ RegFile regFile(
   .Q_from_rob(Q_rob_reg),
   .V_from_rob(V_rob_reg)
 );
-
-always @(posedge clk_in)
-  begin
-    if (rst_in)
-      begin
-      
-      end
-    else if (!rdy_in)
-      begin
-      
-      end
-    else
-      begin
-      
-      end
-  end
 
 endmodule

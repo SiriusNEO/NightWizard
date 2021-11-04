@@ -6,7 +6,6 @@ module Dispatcher(
     input wire rdy,
 
     // from fetcher
-    input wire [`INS_LEN - 1 : 0] inst_from_if,
     input wire [`ADDR_LEN - 1 : 0] pc_from_if,
     input wire ok_flag_from_if,
 
@@ -71,60 +70,74 @@ module Dispatcher(
     output reg [`ROB_LEN : 0] rob_id_to_lsb
 );
 
+reg dispatch_flag;
+
 assign Q1_to_rob = Q1_from_reg;
 assign Q2_to_rob = Q2_from_reg;
 
-always @(posedge clk or posedge rst) begin
+always @(posedge clk) begin
     if (rst == `TRUE) begin
-        ena_to_rob = `FALSE;
-        ena_to_rs = `FALSE;
-        ena_to_lsb = `FALSE;
+        ena_to_rob <= `FALSE;
+        ena_to_rs <= `FALSE;
+        ena_to_lsb <= `FALSE;
+        ena_to_reg <= `FALSE;
+        dispatch_flag <= `FALSE;
     end    
-    else if (rdy == `TRUE) begin
-        if (ok_flag_from_if == `FALSE) begin
-            ena_to_rob = `FALSE;
-            ena_to_rs = `FALSE;
-            ena_to_lsb = `FALSE;
-            ena_to_reg = `FALSE;
-        end
-        else begin
+    // should pause
+    else if (rdy == `FALSE || openum_from_dcd == `OPENUM_NOP || (!ok_flag_from_if && !dispatch_flag)) begin
+        ena_to_rob <= `FALSE;
+        ena_to_rs <= `FALSE;
+        ena_to_lsb <= `FALSE;
+        ena_to_reg <= `FALSE;
+    end
+    else begin
+        // data fetch
+        if (ok_flag_from_if == `TRUE) begin
             // query reg
-            rs1_to_reg = rs1_from_dcd;
-            rs2_to_reg = rs2_from_dcd; 
+            rs1_to_reg <= rs1_from_dcd;
+            rs2_to_reg <= rs2_from_dcd; 
 
             // rob alloc
-            ena_to_rob = `TRUE;
-            rd_to_rob = rd_from_dcd;
-            data_to_rob = `ZERO_WORD; // nothing now
-            pc_to_rob = pc_from_if;
+            ena_to_rob <= `TRUE;
+            rd_to_rob <= rd_from_dcd;
+            data_to_rob <= `ZERO_WORD; // nothing now
+            pc_to_rob <= pc_from_if;
 
-            // reg alloc
-            ena_to_reg = `TRUE;
-            rd_to_reg = rd_from_dcd;
-            Q_to_reg = rob_id_from_rob;
+            // dispatch enable
+            dispatch_flag <= `TRUE;
+        end
+        // dispatch
+        else if (dispatch_flag == `TRUE) begin
+            dispatch_flag <= `FALSE;
+            ena_to_rob <= `FALSE;
+
+             // reg alloc
+            ena_to_reg <= `TRUE;
+            rd_to_reg <= rd_from_dcd;
+            Q_to_reg <= rob_id_from_rob;
 
             // to ls
             if (openum_from_dcd >= `OPENUM_LB && openum_from_dcd <= `OPENUM_SW) begin
-                ena_to_lsb = `TRUE;
-                openum_to_lsb = openum_from_dcd;
-                V1_to_lsb = Q1_ready_from_rob ? V1_from_reg : `ZERO_WORD;
-                V2_to_lsb = Q2_ready_from_rob ? V2_from_reg : `ZERO_WORD;
-                Q1_to_lsb = Q1_from_reg;
-                Q2_to_lsb = Q2_from_reg;
-                imm_to_lsb = imm_from_dcd;
-                rob_id_to_lsb =rob_id_from_rob;
+                ena_to_lsb <= `TRUE;
+                openum_to_lsb <= openum_from_dcd;
+                V1_to_lsb <= Q1_ready_from_rob ? V1_from_reg : `ZERO_WORD;
+                V2_to_lsb <= Q2_ready_from_rob ? V2_from_reg : `ZERO_WORD;
+                Q1_to_lsb <= Q1_from_reg;
+                Q2_to_lsb <= Q2_from_reg;
+                imm_to_lsb <= imm_from_dcd;
+                rob_id_to_lsb <= rob_id_from_rob;
             end 
             // to rs
-            else if (openum_from_dcd != `OPENUM_NOP) begin
-                ena_to_rs = `TRUE;
-                openum_to_rs = openum_from_dcd;
-                V1_to_rs = V1_from_reg;
-                V2_to_rs = V2_from_reg;
-                Q1_to_rs = Q1_from_reg;
-                Q2_to_rs = Q2_from_reg;
-                pc_to_rs = pc_from_if;
-                imm_to_rs = imm_from_dcd;
-                rob_id_to_rs = rob_id_from_rob;
+            else begin
+                ena_to_rs <= `TRUE;
+                openum_to_rs <= openum_from_dcd;
+                V1_to_rs <= V1_from_reg;
+                V2_to_rs <= V2_from_reg;
+                Q1_to_rs <= Q1_from_reg;
+                Q2_to_rs <= Q2_from_reg;
+                pc_to_rs <= pc_from_if;
+                imm_to_rs <= imm_from_dcd;
+                rob_id_to_rs <= rob_id_from_rob;
             end
         end
     end    

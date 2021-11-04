@@ -23,7 +23,7 @@
 `define ADDR_LEN 32
 `define DATA_LEN 32
 
-`define OPENUM_LEN 5 
+`define OPENUM_LEN 6
 `define OPCODE_LEN 7
 `define FUNC3_LEN 3
 `define FUNC7_LEN 7

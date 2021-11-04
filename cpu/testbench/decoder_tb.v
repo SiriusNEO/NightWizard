@@ -25,30 +25,6 @@ Decoder decoder(
     .imm(imm_dcd_dsp)
 );
 
-Dispatcher dispatcher(
-    .clk(clk),
-    .rst(rst), 
-    .inst_from_if(inst),
-    
-    .inst_to_dcd(inst_dsp_dcd),
-
-    .openum_from_dcd(op_enum_dcd_dsp),
-    .rd_from_dcd(rd_dcd_dsp),
-    .rs1_from_dcd(rs1_dcd_dsp),
-    .rs2_from_dcd(rs2_dcd_dsp),
-    .imm_from_dcd(imm_dcd_dsp)
-);
-
-Registers registers(
-    .clk(clk),
-    .rst(rst)
-);
-
-ReserveStation rs(
-    .clk(clk),
-    .rst(rst)
-);
-
 initial begin
     clk=0;
     rst=0;
@@ -57,7 +33,7 @@ initial begin
 end
 
 initial begin
-    inst = 32'h00020137; // lui	sp,0x20
+    inst = 32'h0ff57513; // zext
     #2 $display("decode result: op_enum = %d, rd = %d, rs1 = %d, rs2 = %d, imm = %d", op_enum_dcd_dsp, rd_dcd_dsp, rs1_dcd_dsp, rs2_dcd_dsp, imm_dcd_dsp);
 
     inst = 32'h02912223; // sw	s1,36(sp)

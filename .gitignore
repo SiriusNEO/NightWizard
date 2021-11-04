@@ -1,4 +1,6 @@
 /cpu/testcase/
 /cpu/test/
 /cpu/out/
-
+NightWizard.xpr
+NightWizard.*/
+.vscode/
