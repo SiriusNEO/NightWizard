@@ -290,6 +290,17 @@ RS rs(
   // to cdb
   .rob_id_to_cdb(rob_id_rs_cdb),
 
+  // from rs cdb
+  .valid_from_rs_cdb(valid_rs_cdb),
+  .rob_id_from_rs_cdb(rob_id_rs_cdb),
+  .result_from_rs_cdb(result_rs_cdb),
+
+  // from ls cdb
+  .valid_from_ls_cdb(valid_ls_cdb),
+  .rob_id_from_ls_cdb(rob_id_ls_cdb),
+  .result_from_ls_cdb(result_ls_cdb),
+
+  // jump_flag
   .commit_jump_flag_from_rob(commit_jump_flag_bus)
 );
 

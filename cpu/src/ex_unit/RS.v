@@ -117,7 +117,7 @@ always @(posedge clk) begin
                     V1[i] <= result_from_rs_cdb;
                     Q1[i] <= `ZERO_ROB;
                 end
-                else if (Q2[i] == rob_id_from_rs_cdb) begin
+                if (Q2[i] == rob_id_from_rs_cdb) begin
                     V2[i] <= result_from_rs_cdb;
                     Q2[i] <= `ZERO_ROB;
                 end
@@ -129,7 +129,7 @@ always @(posedge clk) begin
                     V1[i] <= result_from_ls_cdb;
                     Q1[i] <= `ZERO_ROB;
                 end
-                else if (Q2[i] == rob_id_from_ls_cdb) begin
+                if (Q2[i] == rob_id_from_ls_cdb) begin
                     V2[i] <= result_from_ls_cdb;
                     Q2[i] <= `ZERO_ROB;
                 end

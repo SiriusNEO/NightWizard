@@ -1,7 +1,6 @@
 `include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
 
 module RS_EX(
-    input wire ena,
     input wire [`OPENUM_LEN - 1 : 0] openum,
     input wire [`DATA_LEN - 1 : 0] V1,
     input wire [`DATA_LEN - 1 : 0] V2,
@@ -54,11 +53,11 @@ always @(*) begin
         end    
         `OPENUM_BLTU: begin
             target_pc = pc + imm;
-            jump_flag = ($signed(V1) < $signed(V2));
+            jump_flag = (V1 < V2);
         end    
         `OPENUM_BGEU: begin
             target_pc = pc + imm;
-            jump_flag = ($signed(V1) >= $signed(V2));
+            jump_flag = (V1 >= V2);
         end    
         `OPENUM_ADD: begin
             result = V1 + V2;

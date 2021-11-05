@@ -27,7 +27,7 @@ module RegFile (
 );
 
 // reg store
-reg [`ROB_LEN - 1 : 0] Q [`REG_SIZE - 1 : 0];
+reg [`ROB_LEN : 0] Q [`REG_SIZE - 1 : 0];
 reg [`DATA_LEN - 1 : 0] V [`REG_SIZE - 1 : 0];
 
 // index

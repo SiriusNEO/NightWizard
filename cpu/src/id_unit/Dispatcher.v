@@ -28,7 +28,6 @@ module Dispatcher(
     // to rob
     output reg ena_to_rob,
     output reg [`REG_LEN - 1 : 0] rd_to_rob,
-    output reg [`DATA_LEN - 1 : 0] data_to_rob,
     output reg [`ADDR_LEN - 1 : 0] pc_to_rob,
     // from rob
     input wire [`ROB_LEN : 0] rob_id_from_rob,
@@ -100,7 +99,6 @@ always @(posedge clk) begin
             // rob alloc
             ena_to_rob <= `TRUE;
             rd_to_rob <= rd_from_dcd;
-            data_to_rob <= `ZERO_WORD; // nothing now
             pc_to_rob <= pc_from_if;
 
             // dispatch enable
