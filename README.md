@@ -14,28 +14,28 @@ I waste too much time in considering how to design a elegant architecture, but I
 
 
 
-| testcase       | status | clock   |
-| -------------- | ------ | ------- |
-| array_test1    | p      |         |
-| array_test2    | p      |         |
-| basicopt1      | P      | 9503787 |
-| bulgarian      |        |         |
-| expr           | P      |         |
-| gcd            | P      |         |
-| hanoi          |        |         |
-| heart          |        |         |
-| looper         | P      |         |
-| lvalue2        | P      |         |
-| magic          |        |         |
-| manyarguments  | P      |         |
-| multiarray     | P      |         |
-| pi             |        |         |
-| qsort          | P      |         |
-| queens         |        |         |
-| statement_test | P      |         |
-| superloop      | P      | 9332225 |
-| tak            | P      |         |
-| uartboom       |        |         |
+| testcase       | status         | clock   |
+| -------------- | -------------- | ------- |
+| array_test1    | p              |         |
+| array_test2    | p              |         |
+| basicopt1      | P              | 9503787 |
+| bulgarian      | can't simulate |         |
+| expr           | P              |         |
+| gcd            | P              |         |
+| hanoi          | can't simulate |         |
+| heart          | can't simulate |         |
+| looper         | P              |         |
+| lvalue2        | P              |         |
+| magic          | P              | 9473655 |
+| manyarguments  | P              |         |
+| multiarray     | P              |         |
+| pi             | can't simulate |         |
+| qsort          | P              |         |
+| queens         | P              |         |
+| statement_test | P              |         |
+| superloop      | P              | 9332225 |
+| tak            | P              |         |
+| uartboom       | P              |         |
 
 ### Version 2.0
 
