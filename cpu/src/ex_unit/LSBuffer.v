@@ -54,7 +54,6 @@ reg [`LSB_LEN - 1 : 0] head;
 reg [`LSB_LEN - 1 : 0] tail;
 wire [`LSB_LEN - 1 : 0] next_tail = (tail == `LSB_SIZE - 1) ? 0 : tail + 1;
 
-wire empty_signal = (head == tail);
 wire full_signal = (next_tail == head);
 
 assign full_to_if = full_signal;
@@ -107,9 +106,11 @@ always @(posedge clk) begin
     else begin
         
         // exec
-        if (empty_signal == `FALSE && busy_from_ex == `FALSE && Q1[head] == `ZERO_ROB && Q2[head] == `ZERO_ROB) begin
+        if (busy[head] == `TRUE && busy_from_ex == `FALSE && Q1[head] == `ZERO_ROB && Q2[head] == `ZERO_ROB) begin
             // load
             if (`OPENUM_LHU >= openum[head]) begin
+                busy[head] <= `FALSE;
+                rob_id[head] <= `ZERO_ROB; 
                 is_committed[head] <= `FALSE;
                 ena_to_ex <= `TRUE;
                 openum_to_ex <= openum[head];
@@ -120,6 +121,8 @@ always @(posedge clk) begin
             // store: commit first
             else begin
                 if (is_committed[head] == `TRUE) begin
+                    busy[head] <= `FALSE;
+                    rob_id[head] <= `ZERO_ROB;
                     is_committed[head] <= `FALSE;
                     ena_to_ex <= `TRUE;
                     openum_to_ex <= openum[head];

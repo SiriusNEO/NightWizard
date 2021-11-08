@@ -19,7 +19,7 @@ always @(inst) begin
 
         case (inst[`OPCODE_RANGE])
             `OPCODE_LUI, `OPCODE_AUIPC: begin // U-Type
-                imm = {inst[31 : 12], 12'b0};
+                imm = {inst[31:12], 12'b0};
                 if (inst[`OPCODE_RANGE] == `OPCODE_LUI)
                     openum = `OPENUM_LUI;
                 else 
@@ -27,7 +27,7 @@ always @(inst) begin
             end
 
             `OPCODE_JAL: begin // J-Type
-                imm = {{12{inst[31]}}, inst[19 : 12], inst[20 : 20], inst[30 : 21], 1'b0};
+                imm = {{12{inst[31]}}, inst[19:12], inst[20], inst[30:21], 1'b0};
                 openum = `OPENUM_JAL;
             end
 
@@ -65,7 +65,7 @@ always @(inst) begin
 
             `OPCODE_BR: begin // B-Type
                 rd = `ZERO_REG; // no rd
-                imm = {{20{inst[31]}}, inst[7 : 7], inst[30 : 25], inst[11 : 8], 1'b0};
+                imm = {{20{inst[31]}}, inst[7:7], inst[30:25], inst[11:8], 1'b0};
                 case (inst[`FUNC3_RANGE])
                     `FUNC3_BEQ:  openum = `OPENUM_BEQ;
                     `FUNC3_BNE:  openum = `OPENUM_BNE;
@@ -78,7 +78,7 @@ always @(inst) begin
 
             `OPCODE_S: begin // S-Type
                 rd = `ZERO_REG; // no rd
-                imm = {{21{inst[31]}}, inst[30 : 25], inst[`RD_RANGE]};
+                imm = {{21{inst[31]}}, inst[30:25], inst[`RD_RANGE]};
                 case (inst[`FUNC3_RANGE])
                     `FUNC3_SB:  openum = `OPENUM_SB;
                     `FUNC3_SH:  openum = `OPENUM_SH;

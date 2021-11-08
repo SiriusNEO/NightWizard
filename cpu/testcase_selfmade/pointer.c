@@ -1,14 +1,15 @@
 #include "io.h"
 
-int a[4];
+int a[400];
 int main()
 {
 	int i;
-    for (i = 0; i < 4; i++)
+    for (i = 0; i < 20; i++)
 	{
-		a[i] = 0;
+		a[i] = 99;
 	}
-    for (i = 0; i < 4; i++) {
-		outl(a[i]);
+	int *p = a;
+    for (i = 0; i < 20; i++) {
+		outl(i);print(" ");outlln(*(p+i));
     }
 }

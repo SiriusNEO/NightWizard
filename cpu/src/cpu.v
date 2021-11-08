@@ -168,15 +168,15 @@ Fetcher fetcher(
 
   .inst_to_dcd(inst_if_dcd),
 
+  .pc_to_dsp(pc_if_dsp),
+  .ok_flag_to_dsp(ok_flag_if_dsp),
+
   .pc_to_mc(pc_if_mc),
   .ena_to_mc(ena_if_mc),
   .drop_flag_to_mc(drop_flag_if_mc),
 
   .ok_flag_from_mc(ok_flag_mc_if),
   .inst_from_mc(inst_mc_if),
-
-  .pc_to_dsp(pc_if_dsp),
-  .ok_flag_to_dsp(ok_flag_if_dsp),
 
   .full_from_rs(full_rs_if), .full_from_lsb(full_lsb_if), .full_from_rob(full_rob_if),
 

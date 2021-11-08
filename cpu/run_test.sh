@@ -14,9 +14,12 @@ if [ -f ./testcase/$@.ans ]; then cp ./testcase/$@.ans ./test/test.ans; fi
 iverilog src/cpu.v src/ram.v src/riscv_top.v src/hci.v src/common/*/*.v sim/testbench.v -o out/a.out
 cd out
 
+# run
+./a.out
+
 # diff
 # ./a.out > test.out
 # diff test.out ../test/test.ans
 
 # wave
-vvp a.out
+# vvp a.out
