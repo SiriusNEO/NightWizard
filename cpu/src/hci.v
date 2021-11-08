@@ -259,6 +259,7 @@ always @*
             d_state = S_DECODE; 
             d_program_finish = 1'b1;
             $display("IO:Return");
+            $display("Total Time (ns): ", $time);
             $finish;
           end
         endcase

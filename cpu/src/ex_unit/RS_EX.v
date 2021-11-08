@@ -81,7 +81,7 @@ always @(*) begin
             result = (V1 >> V2);
         end
         `OPENUM_SRA: begin
-            result = $signed(V1 >> V2);
+            result = (V1 >>> V2);
         end
         `OPENUM_OR: begin
             result = (V1 | V2);
@@ -108,7 +108,7 @@ always @(*) begin
             result = (V1 >> imm);
         end
         `OPENUM_SRAI: begin  
-            result = $signed(V1 >> imm);
+            result = (V1 >>> imm);
         end
         `OPENUM_ORI: begin
             result = (V1 | imm);

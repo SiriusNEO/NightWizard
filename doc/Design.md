@@ -205,7 +205,9 @@ free_index 与 exec_index 用一个组合逻辑计算
 
 ## REG
 
-周期11：reg 接到 dispatcher 的分配申请。分配一个位置。
+组合逻辑。
 
-周期15：接收到 commit 消息，更新 reg。
+~~周期11~~ 周期10：reg 接到 dispatcher 的分配申请。分配一个位置。
+
+~~周期15~~ 周期14：接收到 commit 消息，更新 reg。
 

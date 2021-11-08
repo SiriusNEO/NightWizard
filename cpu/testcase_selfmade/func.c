@@ -1,6 +1,8 @@
 #include "io.h"
 
 int add(int a, int b) {
+    int mid = (a + b) / 2;
+    outlln(mid);
     return a + b;
 }
 

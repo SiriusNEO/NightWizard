@@ -46,7 +46,7 @@ always @(inst) begin
                     end    
                     `OPCODE_ARITHI: begin
                         if (inst[`FUNC3_RANGE] == `FUNC3_SRAI && inst[`FUNC7_RANGE] == `FUNC7_SPEC) 
-                            openum = `OPENUM_SRA;
+                            openum = `OPENUM_SRAI;
                         else begin
                             case (inst[`FUNC3_RANGE])
                                 `FUNC3_ADDI:  openum = `OPENUM_ADDI;
@@ -58,6 +58,10 @@ always @(inst) begin
                                 `FUNC3_SLLI:  openum = `OPENUM_SLLI;
                                 `FUNC3_SRLI:  openum = `OPENUM_SRLI;
                             endcase
+                        end
+                        // shamt
+                        if (openum == `OPENUM_SLLI || openum == `OPENUM_SRLI || openum == `OPENUM_SRAI) begin
+                            imm = imm[4:0];
                         end    
                     end 
                 endcase

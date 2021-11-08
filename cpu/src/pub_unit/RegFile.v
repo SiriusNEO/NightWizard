@@ -43,18 +43,18 @@ integer dbg_cmupd_index = -1;
 integer dbg_cmupd_Q = -1;
 integer dbg_cmupd_V = -1;
 
-always @(posedge clk) begin
+always @(*) begin
     if (rst == `TRUE) begin
         for (i = 0; i < `REG_SIZE; i=i+1) begin
-            Q[i] <= `ZERO_ROB;
-            V[i] <= `ZERO_WORD;
+            Q[i] = `ZERO_ROB;
+            V[i] = `ZERO_WORD;
         end
     end
     else begin
         if (ena_from_dsp == `TRUE) begin
             if (rd_from_dsp != `ZERO_REG) begin
-                Q[rd_from_dsp] <= Q_from_dsp;
-                V[rd_from_dsp] <= `ZERO_WORD;
+                Q[rd_from_dsp] = Q_from_dsp;
+                V[rd_from_dsp] = `ZERO_WORD;
             end
         end
 
@@ -62,14 +62,14 @@ always @(posedge clk) begin
         if (commit_flag_from_rob == `TRUE) begin
             // zero reg is immutable
             if (rd_from_rob != `ZERO_REG) begin
-                V[rd_from_rob] <= V_from_rob;
+                V[rd_from_rob] = V_from_rob;
                 if (Q[rd_from_rob] == Q_from_rob)
-                    Q[rd_from_rob] <= `ZERO_ROB;
+                    Q[rd_from_rob] = `ZERO_ROB;
             end
 `ifdef DEBUG
-                dbg_cmupd_index <= rd_from_rob;
-                dbg_cmupd_Q <= Q_from_rob;
-                dbg_cmupd_V <= V_from_rob;
+                dbg_cmupd_index = rd_from_rob;
+                dbg_cmupd_Q = Q_from_rob;
+                dbg_cmupd_V = V_from_rob;
 `endif
         end
     end

@@ -85,3 +85,5 @@ array 过了一点 还是 `ROB_LEN +-1 的问题。。。
 出去旅游，咕了一段时间，回来继续整
 
 一个死循环bug：主要是 lsb commit 重复更新了，导致 store 不用先 commit 就直接提交了
+
+分治的代码有问题：SLLI、SRLI、SRAI 三个 imm 需要取 shamt 部分！
