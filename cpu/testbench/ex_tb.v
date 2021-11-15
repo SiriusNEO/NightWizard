@@ -4,10 +4,10 @@
 `timescale 1ns/1ps
 module testbench;
 
-reg [`OPENUM_LEN - 1 : 0] openum;
-reg [`DATA_LEN - 1 : 0] oprand1;
-reg [`DATA_LEN - 1 : 0] oprand2;
-wire [`DATA_LEN - 1 : 0] result;
+reg [`OPENUM_TYPE] openum;
+reg [`OPENUM_TYPE] oprand1;
+reg [`OPENUM_TYPE] oprand2;
+wire [`OPENUM_TYPE] result;
 
 AL_Executor al_executor(
     .openum(openum),

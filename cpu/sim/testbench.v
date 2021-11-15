@@ -29,7 +29,7 @@ end
 // my testbench. generate .vcd
 
 initial begin            
-    $dumpfile("wave.vcd");
+    $dumpfile("wave1.vcd");
     $dumpvars();
 end
 

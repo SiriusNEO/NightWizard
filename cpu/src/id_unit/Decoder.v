@@ -1,17 +1,18 @@
 `include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
+`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/id_unit/DecodeTable.v"
 
 module Decoder(
     input wire ena,
-    input wire [`INS_LEN - 1 : 0] inst, 
+    input wire [`INS_TYPE] inst, 
     
-    output reg [`OPENUM_LEN - 1 : 0] openum,
-    output reg [`REG_LEN - 1 : 0] rd,
-    output reg [`REG_LEN - 1 : 0] rs1,
-    output reg [`REG_LEN - 1 : 0] rs2,
-    output reg [`DATA_LEN - 1 : 0] imm
+    output reg [`OPENUM_TYPE] openum,
+    output reg [`REG_POS_TYPE] rd,
+    output reg [`REG_POS_TYPE] rs1,
+    output reg [`REG_POS_TYPE] rs2,
+    output reg [`DATA_TYPE] imm
 );
 
-always @(inst) begin
+always @(*) begin
     if (ena == `TRUE) begin
         rd = inst[`RD_RANGE];
         rs1 = inst[`RS1_RANGE];

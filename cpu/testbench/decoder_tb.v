@@ -4,17 +4,17 @@
 `timescale 1ns/1ps
 module testbench;
 
-reg [`INS_LEN - 1 : 0] inst;
+reg [`INS_TYPE] inst;
 reg clk;
 reg rst;
 
-wire [`INS_LEN - 1 : 0] inst_dsp_dcd;
+wire [`INS_TYPE] inst_dsp_dcd;
 
-wire [`OPENUM_LEN - 1 : 0] op_enum_dcd_dsp;
-wire [`REG_LEN - 1 : 0] rd_dcd_dsp;
-wire [`REG_LEN - 1 : 0] rs1_dcd_dsp;
-wire [`REG_LEN - 1 : 0] rs2_dcd_dsp;
-wire [`DATA_LEN - 1 : 0] imm_dcd_dsp;
+wire [`OPENUM_TYPE] op_enum_dcd_dsp;
+wire [`REG_POS_TYPE] rd_dcd_dsp;
+wire [`REG_POS_TYPE] rs1_dcd_dsp;
+wire [`REG_POS_TYPE] rs2_dcd_dsp;
+wire [`OPENUM_TYPE] imm_dcd_dsp;
 
 Decoder decoder(
     .inst(inst_dsp_dcd),

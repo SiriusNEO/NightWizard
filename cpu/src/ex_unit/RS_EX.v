@@ -1,14 +1,14 @@
 `include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
 
 module RS_EX(
-    input wire [`OPENUM_LEN - 1 : 0] openum,
-    input wire [`DATA_LEN - 1 : 0] V1,
-    input wire [`DATA_LEN - 1 : 0] V2,
-    input wire [`DATA_LEN - 1 : 0] imm,
-    input wire [`ADDR_LEN - 1 : 0] pc,
+    input wire [`OPENUM_TYPE] openum,
+    input wire [`DATA_TYPE] V1,
+    input wire [`DATA_TYPE] V2,
+    input wire [`DATA_TYPE] imm,
+    input wire [`ADDR_TYPE] pc,
 
-    output reg [`DATA_LEN - 1 : 0] result,
-    output reg [`ADDR_LEN - 1 : 0] target_pc,
+    output reg [`DATA_TYPE] result,
+    output reg [`ADDR_TYPE] target_pc,
     output reg jump_flag,
     output reg valid
 );
@@ -117,7 +117,13 @@ always @(*) begin
             result = (V1 & imm);
         end
     endcase
-
+    
+    // notice: branch & store also has result for debug purpose
+    // these result will be written to zero reg, so no influence
+    
+    if (openum >= `OPENUM_BEQ && openum <= `OPENUM_BGEU) begin
+        result = jump_flag;
+    end
 end
 
 endmodule

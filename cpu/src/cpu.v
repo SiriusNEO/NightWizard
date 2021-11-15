@@ -45,121 +45,123 @@ module cpu(
 // - 0x30004 write: indicates program stop (will output '\0' through uart tx)
 
 // fetcher and memctrl
-wire [`ADDR_LEN - 1 : 0] pc_if_mc;
-wire [`INS_LEN - 1 : 0] inst_mc_if;
+wire [`ADDR_TYPE] pc_if_mc;
+wire [`INS_TYPE] inst_mc_if;
 wire ena_if_mc, ok_flag_mc_if, drop_flag_if_mc;
 
 // fetcher and dispatcher
-wire [`INS_LEN - 1 : 0] inst_if_dsp;
-wire [`ADDR_LEN - 1 : 0] pc_if_dsp;
+wire [`INS_TYPE] inst_if_dsp;
+wire [`ADDR_TYPE] pc_if_dsp;
 wire ok_flag_if_dsp;
 
 // full signal to fetcher
-wire full_rs_if, full_lsb_if, full_rob_if;
+wire full_rs, full_lsb, full_rob;
+wire global_full = (full_rs || full_lsb || full_rob);
 
 // fetcher and decoder
-wire [`INS_LEN - 1 : 0] inst_if_dcd;
+wire [`INS_TYPE] inst_if_dcd;
+
 
 // dispatcher and decoder
-wire [`OPENUM_LEN - 1 : 0] openum_dcd_dsp;
-wire [`REG_LEN - 1 : 0] rd_dcd_dsp, rs1_dcd_dsp, rs2_dcd_dsp;
-wire [`DATA_LEN - 1 : 0] imm_dcd_dsp;
+wire [`OPENUM_TYPE] openum_dcd_dsp;
+wire [`REG_POS_TYPE] rd_dcd_dsp, rs1_dcd_dsp, rs2_dcd_dsp;
+wire [`DATA_TYPE] imm_dcd_dsp;
 
 // dispatcher and rs
 wire ena_dsp_rs;
-wire [`OPENUM_LEN - 1 : 0] openum_dsp_rs;
-wire [`DATA_LEN -1 : 0] V1_dsp_rs;
-wire [`DATA_LEN -1 : 0] V2_dsp_rs;
-wire [`ROB_LEN : 0] Q1_dsp_rs;
-wire [`ROB_LEN : 0] Q2_dsp_rs;
-wire [`ADDR_LEN -1 : 0] pc_dsp_rs;
-wire [`ADDR_LEN -1 : 0] imm_dsp_rs;
-wire [`ROB_LEN : 0] rob_id_dsp_rs;
+wire [`OPENUM_TYPE] openum_dsp_rs;
+wire [`DATA_TYPE] V1_dsp_rs;
+wire [`DATA_TYPE] V2_dsp_rs;
+wire [`ROB_ID_TYPE] Q1_dsp_rs;
+wire [`ROB_ID_TYPE] Q2_dsp_rs;
+wire [`ADDR_TYPE] pc_dsp_rs;
+wire [`ADDR_TYPE] imm_dsp_rs;
+wire [`ROB_ID_TYPE] rob_id_dsp_rs;
 
 // dispatcher and lsbuffer
 wire ena_dsp_lsb;
-wire [`OPENUM_LEN - 1 : 0] openum_dsp_lsb;
-wire [`DATA_LEN -1 : 0] V1_dsp_lsb;
-wire [`DATA_LEN -1 : 0] V2_dsp_lsb;
-wire [`ROB_LEN : 0] Q1_dsp_lsb;
-wire [`ROB_LEN : 0] Q2_dsp_lsb;
-wire [`ADDR_LEN -1 : 0] imm_dsp_lsb;
-wire [`ROB_LEN : 0] rob_id_dsp_lsb;
+wire [`OPENUM_TYPE] openum_dsp_lsb;
+wire [`DATA_TYPE] V1_dsp_lsb;
+wire [`DATA_TYPE] V2_dsp_lsb;
+wire [`ROB_ID_TYPE] Q1_dsp_lsb;
+wire [`ROB_ID_TYPE] Q2_dsp_lsb;
+wire [`ADDR_TYPE] imm_dsp_lsb;
+wire [`ROB_ID_TYPE] rob_id_dsp_lsb;
 
 // dispatcher and rob
 wire ena_dsp_rob;
-wire [`REG_LEN - 1 : 0] rd_dsp_rob;
-wire [`DATA_LEN - 1 : 0] data_dsp_rob;
-wire [`ADDR_LEN - 1 : 0] pc_dsp_rob;
-wire [`ROB_LEN : 0] rob_id_rob_dsp;
+wire [`REG_POS_TYPE] rd_dsp_rob;
+wire [`ROB_ID_TYPE] rob_id_rob_dsp;
 
-wire [`ROB_LEN : 0] Q1_dsp_rob;
-wire [`ROB_LEN : 0] Q2_dsp_rob;
+wire [`ROB_ID_TYPE] Q1_dsp_rob;
+wire [`ROB_ID_TYPE] Q2_dsp_rob;
 wire Q1_ready_rob_dsp;
 wire Q2_ready_rob_dsp;
+wire [`DATA_TYPE] ready_data1_rob_dsp;
+wire [`DATA_TYPE] ready_data2_rob_dsp;
 
 // dispatcher and regfile
-wire [`REG_LEN - 1 : 0] rs1_dsp_reg;
-wire [`REG_LEN - 1 : 0] rs2_dsp_reg;
-wire [`DATA_LEN -1 : 0] V1_reg_dsp;
-wire [`DATA_LEN -1 : 0] V2_reg_dsp;
-wire [`ROB_LEN : 0] Q1_reg_dsp;
-wire [`ROB_LEN : 0] Q2_reg_dsp;
+wire [`REG_POS_TYPE] rs1_dsp_reg;
+wire [`REG_POS_TYPE] rs2_dsp_reg;
+wire [`DATA_TYPE] V1_reg_dsp;
+wire [`DATA_TYPE] V2_reg_dsp;
+wire [`ROB_ID_TYPE] Q1_reg_dsp;
+wire [`ROB_ID_TYPE] Q2_reg_dsp;
 
 wire ena_dsp_reg;
-wire [`REG_LEN - 1 : 0] rd_dsp_reg;
-wire [`ROB_LEN : 0] Q_dsp_reg;
+wire [`REG_POS_TYPE] rd_dsp_reg;
+wire [`ROB_ID_TYPE] Q_dsp_reg;
 
 // commit
 wire commit_flag_bus;
 wire commit_jump_flag_bus;
 
 // rob to reg
-wire [`REG_LEN - 1 : 0] rd_rob_reg;
-wire [`ROB_LEN : 0] Q_rob_reg;
-wire [`DATA_LEN - 1 : 0] V_rob_reg;
+wire [`REG_POS_TYPE] rd_rob_reg;
+wire [`ROB_ID_TYPE] Q_rob_reg;
+wire [`DATA_TYPE] V_rob_reg;
 
 // rob to if
-wire [`ADDR_LEN - 1 : 0] target_pc_rob_if;
+wire [`ADDR_TYPE] target_pc_rob_if;
 
 // rob and lsb
-wire [`ROB_LEN : 0] rob_id_rob_lsb;
+wire [`ROB_ID_TYPE] rob_id_rob_lsb;
 
-wire [`ROB_LEN : 0] store_rob_id_lsb_rob;
+wire [`ROB_ID_TYPE] store_rob_id_lsb_rob;
 
 // rs and rs_ex
-wire [`OPENUM_LEN - 1 : 0] openum_rs_ex;
-wire [`DATA_LEN - 1 : 0] V1_rs_ex;
-wire [`DATA_LEN - 1 : 0] V2_rs_ex;
-wire [`DATA_LEN - 1 : 0] imm_rs_ex;
-wire [`ADDR_LEN - 1 : 0] pc_rs_ex;
+wire [`OPENUM_TYPE] openum_rs_ex;
+wire [`DATA_TYPE] V1_rs_ex;
+wire [`DATA_TYPE] V2_rs_ex;
+wire [`DATA_TYPE] imm_rs_ex;
+wire [`ADDR_TYPE] pc_rs_ex;
 
 // ls and ls_ex
 wire ena_ls_ex;
 wire busy_ex_ls;
-wire [`OPENUM_LEN - 1 : 0] openum_ls_ex;
-wire [`ADDR_LEN - 1 : 0] mem_addr_ls_ex;
-wire [`DATA_LEN - 1 : 0] store_value_ls_ex;
+wire [`OPENUM_TYPE] openum_ls_ex;
+wire [`ADDR_TYPE] mem_addr_ls_ex;
+wire [`DATA_TYPE] store_value_ls_ex;
 
 // ls_ex and memctrl
 wire ena_ex_mc;
-wire [`ADDR_LEN - 1 : 0] addr_ex_mc;
-wire [`DATA_LEN - 1 : 0] data_ex_mc;
+wire [`ADDR_TYPE] addr_ex_mc;
+wire [`DATA_TYPE] data_ex_mc;
 wire wr_flag_ex_mc;
 wire [2: 0] size_ex_mc;
 wire ok_flag_mc_ex;
-wire [`DATA_LEN - 1 : 0] data_mc_ex;
+wire [`DATA_TYPE] data_mc_ex;
 
 // cdb
 wire valid_rs_cdb;
-wire [`ROB_LEN : 0] rob_id_rs_cdb;
-wire [`DATA_LEN - 1 : 0] result_rs_cdb;
-wire [`ADDR_LEN - 1 : 0] target_pc_rs_cdb;
+wire [`ROB_ID_TYPE] rob_id_rs_cdb;
+wire [`DATA_TYPE] result_rs_cdb;
+wire [`ADDR_TYPE] target_pc_rs_cdb;
 wire jump_flag_rs_cdb;
 
 wire valid_ls_cdb;
-wire [`ROB_LEN : 0] rob_id_ls_cdb;
-wire [`DATA_LEN - 1 : 0] result_ls_cdb;
+wire [`ROB_ID_TYPE] rob_id_ls_cdb;
+wire [`DATA_TYPE] result_ls_cdb;
 
 Fetcher fetcher(
   .clk(clk_in),
@@ -167,6 +169,8 @@ Fetcher fetcher(
   .rdy(rdy_in),
 
   .inst_to_dcd(inst_if_dcd),
+
+  .global_full(global_full),
 
   .pc_to_dsp(pc_if_dsp),
   .ok_flag_to_dsp(ok_flag_if_dsp),
@@ -177,8 +181,6 @@ Fetcher fetcher(
 
   .ok_flag_from_mc(ok_flag_mc_if),
   .inst_from_mc(inst_mc_if),
-
-  .full_from_rs(full_rs_if), .full_from_lsb(full_lsb_if), .full_from_rob(full_rob_if),
 
   .commit_flag_from_rob(commit_flag_bus),
   .commit_jump_flag_from_rob(commit_jump_flag_bus),
@@ -207,11 +209,12 @@ Dispatcher dispatcher(
   // from rob
   .Q1_ready_from_rob(Q1_ready_rob_dsp),
   .Q2_ready_from_rob(Q2_ready_rob_dsp),
+  .ready_data1_from_rob(ready_data1_rob_dsp),
+  .ready_data2_from_rob(ready_data2_rob_dsp),
 
   // to rob
   .ena_to_rob(ena_dsp_rob),
   .rd_to_rob(rd_dsp_rob),
-  .pc_to_rob(pc_dsp_rob),
   // from rob
   .rob_id_from_rob(rob_id_rob_dsp),
 
@@ -248,7 +251,20 @@ Dispatcher dispatcher(
   .Q1_to_lsb(Q1_dsp_lsb),
   .Q2_to_lsb(Q2_dsp_lsb),
   .imm_to_lsb(imm_dsp_lsb),
-  .rob_id_to_lsb(rob_id_dsp_lsb)
+  .rob_id_to_lsb(rob_id_dsp_lsb),
+
+  // from rs cdb
+  .valid_from_rs_cdb(valid_rs_cdb),
+  .rob_id_from_rs_cdb(rob_id_rs_cdb),
+  .result_from_rs_cdb(result_rs_cdb),
+
+  // from ls cdb
+  .valid_from_ls_cdb(valid_ls_cdb),
+  .rob_id_from_ls_cdb(rob_id_ls_cdb),
+  .result_from_ls_cdb(result_ls_cdb),
+
+  // jump
+  .commit_jump_flag_from_rob(commit_jump_flag_bus)
 );
 
 Decoder decoder(
@@ -278,7 +294,7 @@ RS rs(
   .imm_from_dsp(imm_dsp_rs),
   .rob_id_from_dsp(rob_id_dsp_rs),
 
-  .full_to_if(full_rs_if),
+  .full_to_if(full_rs),
   
   // to ex
   .openum_to_ex(openum_rs_ex),
@@ -320,6 +336,7 @@ RS_EX rs_ex(
 LSBuffer lsBuffer(
   .clk(clk_in),
   .rst(rst_in),
+
   // from dsp
   .ena_from_dsp(ena_dsp_lsb),
   .openum_from_dsp(openum_dsp_lsb),
@@ -331,7 +348,7 @@ LSBuffer lsBuffer(
   .rob_id_from_dsp(rob_id_dsp_lsb),
     
   // to if
-  .full_to_if(full_lsb_if),
+  .full_to_if(full_lsb),
 
   // to ls ex
   .ena_to_ex(ena_ls_ex),
@@ -344,6 +361,7 @@ LSBuffer lsBuffer(
   // from ls ex
   .busy_from_ex(busy_ex_ls),
 
+  // to rob: make store commit
   .store_rob_id_to_rob(store_rob_id_lsb_rob),
 
   // update when commit
@@ -388,7 +406,10 @@ LS_EX ls_ex(
 
   // to cdb
   .valid(valid_ls_cdb),
-  .result(result_ls_cdb)
+  .result(result_ls_cdb),
+
+  //jump
+  .commit_jump_flag_from_rob(commit_jump_flag_bus)
 );
 
 ReOrderBuffer reOrderBuffer(
@@ -402,6 +423,8 @@ ReOrderBuffer reOrderBuffer(
   // to dsp
   .Q1_ready_to_dsp(Q1_ready_rob_dsp),
   .Q2_ready_to_dsp(Q2_ready_rob_dsp),
+  .ready_data1_to_dsp(ready_data1_rob_dsp),
+  .ready_data2_to_dsp(ready_data2_rob_dsp),
 
   // dsp allocate to rob
   // from dsp
@@ -411,7 +434,7 @@ ReOrderBuffer reOrderBuffer(
   .rob_id_to_dsp(rob_id_rob_dsp),
 
   // to if
-  .full_to_if(full_rob_if),
+  .full_to_if(full_rob),
 
   // update rob by cdb
   // from cdb
@@ -493,6 +516,7 @@ RegFile regFile(
 
   // commit from rob
   .commit_flag_from_rob(commit_flag_bus),
+  .commit_jump_flag_from_rob(commit_jump_flag_bus),
   .rd_from_rob(rd_rob_reg),
   .Q_from_rob(Q_rob_reg),
   .V_from_rob(V_rob_reg)

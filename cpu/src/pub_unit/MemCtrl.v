@@ -9,62 +9,61 @@ module MemCtrl (
     input wire uart_full_from_ram,
     output reg wr_flag_to_ram,
 
-    output reg [`ADDR_LEN - 1 : 0] addr_to_ram,
+    output reg [`ADDR_TYPE] addr_to_ram,
 
-    input wire [`MEMPORT_LEN - 1 : 0] data_i_from_ram,
-    output reg [`MEMPORT_LEN - 1 : 0] data_o_to_ram,
+    input wire [`MEMPORT_TYPE] data_i_from_ram,
+    output reg [`MEMPORT_TYPE] data_o_to_ram,
 
     // port with fetcher
-    input wire [`ADDR_LEN - 1 : 0] pc_from_if,
+    input wire [`ADDR_TYPE] pc_from_if,
     input wire ena_from_if,
     input wire drop_flag_from_if,
     output reg ok_flag_to_if,
-    output reg [`INS_LEN - 1 : 0] inst_to_if,
+    output reg [`INS_TYPE] inst_to_if,
 
     // port with ls_ex
-    input wire [`ADDR_LEN - 1 : 0] addr_from_lsex,
-    input wire [`DATA_LEN - 1 : 0] write_data_from_lsex,
+    input wire [`ADDR_TYPE] addr_from_lsex,
+    input wire [`DATA_TYPE] write_data_from_lsex,
     input wire ena_from_lsex,
     input wire wr_flag_from_lsex,
     input wire [2: 0] size_from_lsex,
     output reg ok_flag_to_lsex,
-    output reg [`DATA_LEN - 1 : 0] load_data_to_lsex
+    output reg [`DATA_TYPE] load_data_to_lsex
 );
 
-parameter 
 // memctrl status
+parameter 
 STATUS_IDLE = 0,
 STATUS_FETCH = 1,
 STATUS_LOAD = 2,
 STATUS_STORE = 3;
 
 // bufferred request
+// because fetch and lsbuffer are sequential, buffer 1 request
 reg buffered_fetch_valid;
-reg [`ADDR_LEN - 1 : 0] buffered_pc;
+reg [`ADDR_TYPE] buffered_pc;
 
 reg buffered_ls_valid;
 reg buffered_wr_flag;
 reg [2: 0] buffered_size;
-reg [`ADDR_LEN - 1 : 0] buffered_addr;
-reg [`ADDR_LEN - 1 : 0] buffered_write_data;
+reg [`ADDR_TYPE] buffered_addr;
+reg [`ADDR_TYPE] buffered_write_data;
 
+// working status para
 integer status;
 integer ram_access_counter, ram_access_stop;
-reg [`ADDR_LEN - 1 : 0] ram_access_pc;
-reg [`DATA_LEN - 1 : 0] writing_data; // fake
-
-initial begin
-    status = STATUS_IDLE;
-    ram_access_counter = 0;
-    ram_access_stop = 0;
-end
+reg [`ADDR_TYPE] ram_access_pc;
+reg [`DATA_TYPE] writing_data;
 
 always @(posedge drop_flag_from_if) begin
-    status <= STATUS_IDLE;
-    ram_access_pc <= `ZERO_ADDR;
-    ram_access_counter <= 0;
+    if (status == STATUS_FETCH || status == STATUS_LOAD) begin
+        status <= STATUS_IDLE;
+        ram_access_pc <= `ZERO_ADDR;
+        ram_access_counter <= 0;
+    end
     buffered_fetch_valid <= `FALSE;
-    buffered_ls_valid <= `FALSE;
+    if (buffered_ls_valid == `TRUE && buffered_wr_flag == `FLAG_READ)
+        buffered_ls_valid <= `FALSE;
 end
 
 always @(posedge clk) begin
@@ -107,6 +106,7 @@ always @(posedge clk) begin
                     ram_access_counter <= 0;
                     ram_access_stop <= size_from_lsex;
                     writing_data <= write_data_from_lsex;
+                    addr_to_ram <= `ZERO_ADDR;
                     ram_access_pc <= addr_from_lsex;
                     wr_flag_to_ram <= `FLAG_WRITE;
                     status <= STATUS_STORE;
@@ -126,6 +126,7 @@ always @(posedge clk) begin
                     ram_access_counter <= 0;
                     ram_access_stop <= buffered_size;
                     writing_data <= buffered_write_data;
+                    addr_to_ram <= `ZERO_ADDR;
                     ram_access_pc <= buffered_addr;
                     wr_flag_to_ram <= `FLAG_WRITE;
                     status <= STATUS_STORE;

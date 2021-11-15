@@ -4,9 +4,9 @@ module LS_EX (
     input wire clk,
     input wire rst,
     input wire ena,
-    input wire [`OPENUM_LEN - 1 : 0] openum,
-    input wire [`ADDR_LEN - 1 : 0] mem_addr,
-    input wire [`DATA_LEN - 1 : 0] store_value,
+    input wire [`OPENUM_TYPE] openum,
+    input wire [`ADDR_TYPE] mem_addr,
+    input wire [`DATA_TYPE] store_value,
 
     // lsb
     output wire busy_to_lsb,
@@ -14,17 +14,20 @@ module LS_EX (
     // port with mc
     output reg ena_to_mc,
 
-    output reg [`ADDR_LEN - 1 : 0] addr_to_mc,
-    output reg [`DATA_LEN - 1 : 0] data_to_mc,
+    output reg [`ADDR_TYPE] addr_to_mc,
+    output reg [`DATA_TYPE] data_to_mc,
     output reg wr_flag_to_mc,
     output reg [2: 0] size_to_mc,
     
     input wire ok_flag_from_mc,
-    input wire [`DATA_LEN - 1 : 0] data_from_mc,
+    input wire [`DATA_TYPE] data_from_mc,
 
     // to cdb
     output reg valid,
-    output reg [`DATA_LEN - 1 : 0] result
+    output reg [`DATA_TYPE] result,
+
+    // jump
+    input wire commit_jump_flag_from_rob
 );
 
 parameter 
@@ -34,43 +37,43 @@ STATUS_LH = 2,
 STATUS_LW = 3,
 STATUS_LBU = 4,
 STATUS_LHU = 5,
-STATUS_STORE = 2;
+STATUS_STORE = 6;
 
 integer status;
 
-assign busy_to_lsb = (status != STATUS_IDLE);
+assign busy_to_lsb = (status != STATUS_IDLE || ena == `TRUE);
 
 // debug
-integer debug_sb_data = -1;
-integer debug_sb_addr = -1;
-integer debug_sb_cnt = -1;
-
-integer debug_sw_data = -1;
-integer debug_sw_addr = -1;
-integer debug_sw_cnt = -1;
+integer debug_ls_openum = -1;
+integer debug_ls_addr = -1;
+integer debug_ls_data = -1;
 
 always @(posedge clk) begin
     if (rst == `TRUE) begin
-        ena_to_mc = `FALSE;
-        valid = `FALSE;
-        status = STATUS_IDLE;
+        ena_to_mc <= `FALSE;
+        valid <= `FALSE;
+        status <= STATUS_IDLE;
     end
     else begin
         if (status != STATUS_IDLE) begin
             ena_to_mc <= `FALSE;    
-            if (ok_flag_from_mc == `TRUE) begin
-                if (status != STATUS_STORE) begin
-                    valid <= `TRUE;
-                    // result <= data_from_mc;
-                    case (status)
-                        STATUS_LB: result <= {{25{data_from_mc[7]}}, data_from_mc[6:0]};
-                        STATUS_LH: result <= {{17{data_from_mc[15]}}, data_from_mc[14:0]};
-                        STATUS_LW: result <= data_from_mc;
-                        STATUS_LBU: result <= {24'b0, data_from_mc[7:0]};
-                        STATUS_LHU: result <= {16'b0, data_from_mc[15:0]};
-                    endcase
-                end
+            if (commit_jump_flag_from_rob == `TRUE && status != STATUS_STORE) begin
                 status <= STATUS_IDLE;
+            end
+            else begin
+                if (ok_flag_from_mc == `TRUE) begin
+                    if (status != STATUS_STORE) begin
+                        valid <= `TRUE;
+                        case (status)
+                            STATUS_LB: result <= {{25{data_from_mc[7]}}, data_from_mc[6:0]};
+                            STATUS_LH: result <= {{17{data_from_mc[15]}}, data_from_mc[14:0]};
+                            STATUS_LW: result <= data_from_mc;
+                            STATUS_LBU: result <= {24'b0, data_from_mc[7:0]};
+                            STATUS_LHU: result <= {16'b0, data_from_mc[15:0]};
+                        endcase
+                    end
+                    status <= STATUS_IDLE;
+                end
             end
         end
         else begin
@@ -117,12 +120,6 @@ always @(posedge clk) begin
                         wr_flag_to_mc <= `FLAG_WRITE;
                         size_to_mc <= 1;
                         status <= STATUS_STORE;
-`ifdef DEBUG
-                        debug_sb_cnt <= debug_sb_cnt + 1;
-                        debug_sb_data <= store_value;
-                        debug_sb_addr <= mem_addr;
-`endif
-                        
                     end 
                     `OPENUM_SH: begin
                         addr_to_mc <= mem_addr;
@@ -137,13 +134,13 @@ always @(posedge clk) begin
                         wr_flag_to_mc <= `FLAG_WRITE;
                         size_to_mc <= 4;
                         status <= STATUS_STORE;
-`ifdef DEBUG
-                        debug_sw_cnt <= debug_sw_cnt + 1;
-                        debug_sw_data <= store_value;
-                        debug_sw_addr <= mem_addr;
-`endif
                     end
                 endcase
+`ifdef DEBUG
+                    debug_ls_openum <= openum;
+                    debug_ls_data <= store_value;
+                    debug_ls_addr <= mem_addr;
+`endif
             end
         end
     end
