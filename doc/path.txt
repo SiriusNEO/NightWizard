@@ -1,0 +1,6 @@
+C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/
+C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/src/
+
+regex
+
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/.*"

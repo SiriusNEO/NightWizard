@@ -1,7 +1,6 @@
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
 
 module RegFile (
-    input wire clk,
     input wire rst,
 
     // call-back
@@ -61,9 +60,7 @@ always @(*) begin
             Q[rd_from_dsp] = Q_from_dsp;
         end
     end
-end
 
-always @(*) begin
     // update when commit
     if (commit_flag_from_rob == `TRUE) begin
         // zero reg is immutable

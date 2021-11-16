@@ -1,5 +1,4 @@
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/id_unit/DecodeTable.v"
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
 
 module Decoder(
     input wire ena,
@@ -13,11 +12,13 @@ module Decoder(
 );
 
 always @(*) begin
+    openum = `OPENUM_NOP;
+    rd = inst[`RD_RANGE];
+    rs1 = inst[`RS1_RANGE];
+    rs2 = inst[`RS2_RANGE];
+    imm = `ZERO_WORD;
+    
     if (ena == `TRUE) begin
-        rd = inst[`RD_RANGE];
-        rs1 = inst[`RS1_RANGE];
-        rs2 = inst[`RS2_RANGE];
-
         case (inst[`OPCODE_RANGE])
             `OPCODE_LUI, `OPCODE_AUIPC: begin // U-Type
                 imm = {inst[31:12], 12'b0};
@@ -115,10 +116,7 @@ always @(*) begin
                 imm = `ZERO_WORD;
             end    
         endcase
-    end 
-    else begin
-        openum = `OPENUM_NOP;
-    end   
+    end  
 end
 
 endmodule

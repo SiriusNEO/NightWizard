@@ -1,4 +1,4 @@
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
 
 module RS (
     input wire clk,
@@ -75,19 +75,21 @@ integer dbg_insert_Q2 = -1;
 integer dbg_insert_V1 = -1;
 integer dbg_insert_V2 = -1;
 
+wire [`ROB_ID_TYPE] real_Q1 = (valid_from_rs_cdb && Q1_from_dsp == rob_id_from_rs_cdb) ? `ZERO_ROB : ((valid_from_ls_cdb && Q1_from_dsp == rob_id_from_ls_cdb) ? `ZERO_ROB : Q1_from_dsp);
+wire [`ROB_ID_TYPE] real_Q2 = (valid_from_rs_cdb && Q2_from_dsp == rob_id_from_rs_cdb) ? `ZERO_ROB : ((valid_from_ls_cdb && Q2_from_dsp == rob_id_from_ls_cdb) ? `ZERO_ROB : Q2_from_dsp);
+wire [`DATA_TYPE] real_V1 = (valid_from_rs_cdb && Q1_from_dsp == rob_id_from_rs_cdb) ? result_from_rs_cdb : ((valid_from_ls_cdb && Q1_from_dsp == rob_id_from_ls_cdb) ? result_from_ls_cdb : V1_from_dsp);
+wire [`DATA_TYPE] real_V2 = (valid_from_rs_cdb && Q2_from_dsp == rob_id_from_rs_cdb) ? result_from_rs_cdb : ((valid_from_ls_cdb && Q2_from_dsp == rob_id_from_ls_cdb) ? result_from_ls_cdb : V2_from_dsp);
+
 always @(*) begin
     free_index = -1;
     exec_index = -1;
 
-    for (i = `RS_SIZE - 1; free_index < 0 && i >= 0; i=i-1) begin
+    for (i = `RS_SIZE - 1; i >= 0; i=i-1) begin
         if (busy[i] == `FALSE) 
             free_index = i;
-    end 
-
-    for (i = `RS_SIZE - 1; exec_index < 0 && i >= 0; i=i-1) begin
         if (busy[i] == `TRUE && Q1[i] == `ZERO_ROB && Q2[i] == `ZERO_ROB) 
             exec_index = i;
-    end 
+    end
 end
 
 always @(posedge clk) begin
@@ -155,37 +157,21 @@ always @(posedge clk) begin
         end
 
         if (ena_from_dsp == `TRUE) begin
-            // insert to rs - no full
-                busy[free_index]  <= `TRUE;
-                openum[free_index] <= openum_from_dsp;
-                
-                Q1[free_index] <= (valid_from_rs_cdb && Q1_from_dsp == rob_id_from_rs_cdb) ? `ZERO_ROB : 
-                ((valid_from_ls_cdb && Q1_from_dsp == rob_id_from_ls_cdb) ? `ZERO_ROB : Q1_from_dsp);
-                
-                Q2[free_index] <= (valid_from_rs_cdb && Q2_from_dsp == rob_id_from_rs_cdb) ? `ZERO_ROB : 
-                ((valid_from_ls_cdb && Q2_from_dsp == rob_id_from_ls_cdb) ? `ZERO_ROB : Q2_from_dsp);
-                
-                V1[free_index] <= (valid_from_rs_cdb && Q1_from_dsp == rob_id_from_rs_cdb) ? result_from_rs_cdb : 
-                ((valid_from_ls_cdb && Q1_from_dsp == rob_id_from_ls_cdb) ? result_from_ls_cdb : V1_from_dsp);
-                
-                V2[free_index] <= (valid_from_rs_cdb && Q2_from_dsp == rob_id_from_rs_cdb) ? result_from_rs_cdb : 
-                ((valid_from_ls_cdb && Q2_from_dsp == rob_id_from_ls_cdb) ? result_from_ls_cdb : V2_from_dsp);
-                
-                pc[free_index] <= pc_from_dsp;
-                imm[free_index] <= imm_from_dsp;
-                rob_id[free_index] <= rob_id_from_dsp;
+            // insert to rs
+            busy[free_index]  <= `TRUE;
+            openum[free_index] <= openum_from_dsp;  
+            Q1[free_index] <= real_Q1;
+            Q2[free_index] <= real_Q2;
+            V1[free_index] <= real_V1;
+            V2[free_index] <= real_V2;
+            pc[free_index] <= pc_from_dsp;
+            imm[free_index] <= imm_from_dsp;
+            rob_id[free_index] <= rob_id_from_dsp;
 `ifdef DEBUG
-                dbg_insert_Q1 <= (valid_from_rs_cdb && Q1_from_dsp == rob_id_from_rs_cdb) ? `ZERO_ROB : 
-                ((valid_from_ls_cdb && Q1_from_dsp == rob_id_from_ls_cdb) ? `ZERO_ROB : Q1_from_dsp);
-
-                dbg_insert_Q2 <= (valid_from_rs_cdb && Q2_from_dsp == rob_id_from_rs_cdb) ? `ZERO_ROB : 
-                ((valid_from_ls_cdb && Q2_from_dsp == rob_id_from_ls_cdb) ? `ZERO_ROB : Q2_from_dsp);
-
-                dbg_insert_V1 <= (valid_from_rs_cdb && Q1_from_dsp == rob_id_from_rs_cdb) ? result_from_rs_cdb : 
-                ((valid_from_ls_cdb && Q1_from_dsp == rob_id_from_ls_cdb) ? result_from_ls_cdb : V1_from_dsp);
-                
-                dbg_insert_V2 <= (valid_from_rs_cdb && Q2_from_dsp == rob_id_from_rs_cdb) ? result_from_rs_cdb : 
-                ((valid_from_ls_cdb && Q2_from_dsp == rob_id_from_ls_cdb) ? result_from_ls_cdb : V2_from_dsp);
+            dbg_insert_Q1 <= real_Q1;
+            dbg_insert_Q2 <= real_Q2;
+            dbg_insert_V1 <= real_V1;
+            dbg_insert_V2 <= real_V2;
                 
 `endif
         end

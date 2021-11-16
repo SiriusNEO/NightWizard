@@ -1,4 +1,4 @@
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
 
 module ReOrderBuffer (
     input wire clk,
@@ -63,8 +63,8 @@ reg [`ROB_POS_TYPE] head, tail;
 wire [`ROB_POS_TYPE] next_head = (head == `ROB_SIZE - 1) ? 0 : head + 1,
                      next_tail = (tail == `ROB_SIZE - 1) ? 0 : tail + 1;
 
-reg [`ROB_POS_TYPE] rob_number;
-wire full_signal = ((rob_number << 1) > `ROB_SIZE);
+reg [`ROB_POS_TYPE] rob_element_cnt;
+wire full_signal = (rob_element_cnt > (`ROB_SIZE >> 1));
 
 assign full_to_if = full_signal;
 
@@ -102,9 +102,9 @@ assign rob_id_to_dsp = tail + 1;
 
 always @(posedge clk) begin
     if (rst == `TRUE || commit_jump_flag == `TRUE) begin
-        rob_number <= `ZERO_ROB;
-        head <= 0;
-        tail <= 0;
+        rob_element_cnt <= `ZERO_ROB;
+        head <= `ZERO_ROB;
+        tail <= `ZERO_ROB;
         for (i = 0; i < `ROB_SIZE; i=i+1) begin
             busy[i] <= `FALSE;
             ready[i] <= `FALSE;
@@ -136,7 +136,7 @@ always @(posedge clk) begin
             busy[head] <= `FALSE;
             ready[head] <= `FALSE;
             head <= next_head;
-            rob_number <= rob_number - 1;
+            rob_element_cnt <= rob_element_cnt - 1;
 `ifdef DEBUG
             dbg_commit <= head + 1;
             dbg_commit_jump_flag <= jump_flag[head];
@@ -178,7 +178,7 @@ always @(posedge clk) begin
 
         if (ena_from_dsp == `TRUE) begin
             // insert
-            rob_number <= rob_number + 1;
+            rob_element_cnt <= rob_element_cnt + 1;
             busy[tail] <= `TRUE;
             rd[tail] <= rd_from_dsp;
             data[tail] <= `ZERO_WORD;

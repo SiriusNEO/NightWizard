@@ -9,4 +9,4 @@ if [ -f ./testcase/$@.ans ]; then cp ./testcase/$@.ans ./test/test.ans; fi
 # Example: assuming serial port on /dev/ttyUSB1
 # ./ctrl/build.sh
 # ./ctrl/run.sh ./test/test.bin ./test/test.in /dev/ttyUSB1 -I
-./ctrl/run.sh ./test/test.bin ./test/test.in /dev/ttyUSB1 -T > ./test/test.out
+./ctrl/run.sh ./test/test.bin ./test/test.in /dev/ttyS4 -T > ./test/test.out

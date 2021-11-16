@@ -87,3 +87,50 @@ array 过了一点 还是 `ROB_LEN +-1 的问题。。。
 一个死循环bug：主要是 lsb commit 重复更新了，导致 store 不用先 commit 就直接提交了
 
 分治的代码有问题：SLLI、SRLI、SRAI 三个 imm 需要取 shamt 部分！
+
+大概 simulation 算 A 掉了，本周大物复习，下周拿板玩玩
+
+
+
+## 11.13
+
+这周事情忙完了 上了 icache
+
+改掉了 Dispatcher 需要两个周期的设计
+
+icache 会卡死 qaq
+
+
+
+## 11.14
+
+LSBuffer 出大问题 修了一通，现在可以跑通一些情况
+
+连输出大数都不行了（
+
+LS_EX 问题 怎么解决呢：修了，busy 命令延后，LS_EX 的 busy 信号加个 ena 判断
+
+还是有问题，今天不调了
+
+~~几把 怎么 101029 写入的是 49 ？？？？？？-> a0=1？~~ Dispatcher 没有用 ROB 更新！
+
+
+
+## 11.15
+
+乐 死循环
+
+~~1080 bne s3, a5, 1070，a5？不对 好像是做太快了 a0 = 155178？？？~~ 看错了
+
+LSBuffer 跳转问题：commit 更新问题
+
+修好了！ROB busy 问题，但是 expr 为啥输出一个 +？？sort 死循环
+
+105c:  01c88833       add a6,a7,t3
+
+1068:  00f887b3       add a5,a7,a5   V2（28）
+
+ROB 满 没处理好！（还是没处理好，但是解决了一些问题）
+
+现在的问题好像只有 ROB 满了
+

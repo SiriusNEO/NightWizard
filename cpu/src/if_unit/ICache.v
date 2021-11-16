@@ -1,15 +1,15 @@
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
 
 // para
-`define ICACHE_SIZE 256
-`define ICACHE_BITLEN 8
-`define INDEX_RANGE 9:2
+`define ICACHE_SIZE 512
+`define ICACHE_BITLEN 9
+`define INDEX_RANGE 10:2
 
 module ICache(
     // query
     input wire [`ADDR_TYPE] query_pc,
     output wire hit,
-    output wire [`INS_TYPE] query_inst,
+    output wire [`INS_TYPE] returned_inst,
 
     // put into icache
     input wire ena_from_if,
@@ -25,7 +25,7 @@ reg [`INS_TYPE] data_store [`ICACHE_SIZE - 1 : 0];
 
 wire [`ICACHE_BITLEN - 1 : 0] index = query_pc[`INDEX_RANGE];
 assign hit = (valid[index] == `TRUE) && (tag_store[index] == query_pc);
-assign query_inst = (hit) ? data_store[index] : `ZERO_WORD;
+assign returned_inst = (hit) ? data_store[index] : `ZERO_WORD;
 
 // debug
 

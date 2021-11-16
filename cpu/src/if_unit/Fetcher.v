@@ -1,5 +1,6 @@
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/if_unit/ICache.v"
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/if_unit/ICache.v"
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/if_unit/Predictor.v"
 
 module Fetcher(
     input wire clk,
@@ -48,15 +49,19 @@ reg ena_to_icache;
 reg [`ADDR_TYPE] addr_to_icache;
 reg [`INS_TYPE] inst_to_icache;
 
-// latency
+// predictor
+wire predicted_jump;
+wire [`ADDR_TYPE] predicted_target_pc;
+
+// stall for debug
 integer cnt = 0;
 parameter wait_clock = 8;
 
-ICache icache(
+ICache icache (
     // query
     .query_pc(pc),
     .hit(hit),
-    .query_inst(inst_from_icache),
+    .returned_inst(inst_from_icache),
 
     // put into icache
     .ena_from_if(ena_to_icache),
@@ -64,14 +69,34 @@ ICache icache(
     .inst_from_if(inst_to_icache)
 );
 
+Predictor predictor (
+    // query
+    .query_pc(pc),
+    .query_inst(inst_from_icache),
+
+    // result
+    .predicted_jump(predicted_jump),
+    .predicted_target_pc(predicted_target_pc)
+);
+
 always @(posedge clk) begin
     if (rst == `TRUE) begin
+        // internal pc
         pc <= `ZERO_ADDR;
         mem_pc <= `ZERO_ADDR;
+        // status
         status <= STATUS_IDLE;
+        // ena        
         ena_to_mc <= `FALSE;
         ena_to_icache <= `FALSE;
+        addr_to_icache <= `ZERO_ADDR;
+        inst_to_icache <= `ZERO_WORD;
+        // to dcd & dsp
+        pc_to_dsp <= `ZERO_ADDR;
         ok_flag_to_dsp <= `FALSE;
+        inst_to_dcd <= `ZERO_WORD;
+        // to mc
+        pc_to_mc <= `ZERO_ADDR;
         drop_flag_to_mc <= `FALSE;
     end
     else if (commit_jump_flag_from_rob == `TRUE) begin
@@ -89,7 +114,8 @@ always @(posedge clk) begin
         if (hit == `TRUE && global_full == `FALSE) begin
             // submit the inst to id
             pc_to_dsp <= pc;
-            pc <= pc + 4;
+            //pc <= (predicted_jump == `TRUE) ? predicted_target_pc : pc + `NEXT_PC;
+            pc <= pc + `NEXT_PC;
             inst_to_dcd <= inst_from_icache;
             ok_flag_to_dsp <= `TRUE;
         end

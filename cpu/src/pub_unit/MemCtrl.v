@@ -1,4 +1,4 @@
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
 
 module MemCtrl (
     input wire clk,
@@ -55,16 +55,9 @@ integer ram_access_counter, ram_access_stop;
 reg [`ADDR_TYPE] ram_access_pc;
 reg [`DATA_TYPE] writing_data;
 
-always @(posedge drop_flag_from_if) begin
-    if (status == STATUS_FETCH || status == STATUS_LOAD) begin
-        status <= STATUS_IDLE;
-        ram_access_pc <= `ZERO_ADDR;
-        ram_access_counter <= 0;
-    end
-    buffered_fetch_valid <= `FALSE;
-    if (buffered_ls_valid == `TRUE && buffered_wr_flag == `FLAG_READ)
-        buffered_ls_valid <= `FALSE;
-end
+wire memctrl_idle_signal = (status == STATUS_IDLE || ((status == STATUS_FETCH || status == STATUS_LOAD) && drop_flag_from_if));
+wire buf_fetch_valid_signal = (buffered_fetch_valid && !drop_flag_from_if);
+wire buf_ls_valid_signal = (buffered_ls_valid && !drop_flag_from_if);
 
 always @(posedge clk) begin
     if (rst == `TRUE) begin
@@ -78,7 +71,16 @@ always @(posedge clk) begin
         load_data_to_lsex <= `ZERO_WORD;
     end
     else if (rdy == `TRUE) begin
-        if (status != STATUS_IDLE || (ena_from_lsex && ena_from_if)) begin
+        if (drop_flag_from_if) begin
+            if (status == STATUS_FETCH || status == STATUS_LOAD) begin
+                status <= STATUS_IDLE;
+            end
+            buffered_fetch_valid <= `FALSE;
+            if (buffered_ls_valid == `TRUE && buffered_wr_flag == `FLAG_READ)
+                buffered_ls_valid <= `FALSE;
+        end
+
+        if (!memctrl_idle_signal || (ena_from_lsex && ena_from_if)) begin
             // memctrl is busy, so bufferred the query
             if (ena_from_if == `FALSE && ena_from_lsex == `TRUE) begin
                 buffered_ls_valid <= `TRUE;
@@ -93,7 +95,7 @@ always @(posedge clk) begin
             end
         end
 
-        if (status == STATUS_IDLE) begin 
+        if (memctrl_idle_signal) begin 
             // idle, clear work cookie
             ok_flag_to_if <= `FALSE;
             ok_flag_to_lsex <= `FALSE;
@@ -121,7 +123,7 @@ always @(posedge clk) begin
                 end
             end
             // if there is buffered request
-            else if (buffered_ls_valid == `TRUE) begin
+            else if (buf_ls_valid_signal) begin
                 if (buffered_wr_flag == `FLAG_WRITE) begin
                     ram_access_counter <= 0;
                     ram_access_stop <= buffered_size;
@@ -149,7 +151,7 @@ always @(posedge clk) begin
                 wr_flag_to_ram <= `FLAG_READ;
                 status <= STATUS_FETCH;
             end
-            else if (buffered_fetch_valid == `TRUE) begin
+            else if (buf_fetch_valid_signal) begin
                 ram_access_counter <= 0;
                 ram_access_stop <= 4;
                 addr_to_ram <= buffered_pc;

@@ -1,4 +1,4 @@
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
 
 module LSBuffer (
     input wire clk,
@@ -75,6 +75,12 @@ reg store_to_rob_lock; // avoid to send twice
 // index
 integer i;
 integer store_tail;
+
+wire [`ROB_ID_TYPE] real_Q1 = (valid_from_rs_cdb && Q1_from_dsp == rob_id_from_rs_cdb) ? `ZERO_ROB : ((valid_from_ls_cdb && Q1_from_dsp == rob_id_from_ls_cdb) ? `ZERO_ROB : Q1_from_dsp);
+wire [`ROB_ID_TYPE] real_Q2 = (valid_from_rs_cdb && Q2_from_dsp == rob_id_from_rs_cdb) ? `ZERO_ROB : ((valid_from_ls_cdb && Q2_from_dsp == rob_id_from_ls_cdb) ? `ZERO_ROB : Q2_from_dsp);
+wire [`DATA_TYPE] real_V1 = (valid_from_rs_cdb && Q1_from_dsp == rob_id_from_rs_cdb) ? result_from_rs_cdb : ((valid_from_ls_cdb && Q1_from_dsp == rob_id_from_ls_cdb) ? result_from_ls_cdb : V1_from_dsp);
+wire [`DATA_TYPE] real_V2 = (valid_from_rs_cdb && Q2_from_dsp == rob_id_from_rs_cdb) ? result_from_rs_cdb : ((valid_from_ls_cdb && Q2_from_dsp == rob_id_from_ls_cdb) ? result_from_ls_cdb : V2_from_dsp);
+
 // debug
 integer dbg_insert_openum = -1;
 integer dbg_insert_Q1 = -1;
@@ -86,11 +92,19 @@ integer dbg_update_result = -1;
 always @(posedge clk) begin
     if (rst == `TRUE || (commit_jump_flag_from_rob == `TRUE && store_tail == -1)) begin
         empty_signal <= `TRUE;
-        head <= 0;
-        tail <= 0;
+        head <= `ZERO_LSB;
+        tail <= `ZERO_LSB;
         store_tail <= -1;
         for (i = 0; i < `LSB_SIZE; i=i+1) begin
             busy[i] <= `FALSE;
+            openum[i] <= `OPENUM_NOP;
+            imm[i] <= `ZERO_WORD;
+            V1[i] <= `ZERO_WORD;
+            V2[i] <= `ZERO_WORD;
+            Q1[i] <= `ZERO_ROB;
+            Q2[i] <= `ZERO_ROB;
+            rob_id[i] <= `ZERO_ROB;
+            is_committed[i] <= `FALSE;
         end
         ena_to_ex <= `FALSE;
         store_rob_id_to_rob <= `ZERO_ROB;
@@ -160,7 +174,7 @@ always @(posedge clk) begin
                 if (busy[i] == `TRUE && rob_id[i] == rob_id_from_rob) begin
                     is_committed[i] <= `TRUE;
                     if (openum[i] >= `OPENUM_SB) begin
-                        store_tail = i;
+                        store_tail <= i;
                     end
 `ifdef DEBUG
 //                    $display("lsb commit upd, pos: ", i);
@@ -207,30 +221,18 @@ always @(posedge clk) begin
                 // insert
                 empty_signal <= `FALSE;
                 busy[tail] <= `TRUE;
-                openum[tail] <= openum_from_dsp;
-                
-                Q1[tail] <= (valid_from_rs_cdb && Q1_from_dsp == rob_id_from_rs_cdb) ? `ZERO_ROB : 
-                ((valid_from_ls_cdb && Q1_from_dsp == rob_id_from_ls_cdb) ? `ZERO_ROB : Q1_from_dsp);
-                
-                Q2[tail] <= (valid_from_rs_cdb && Q2_from_dsp == rob_id_from_rs_cdb) ? `ZERO_ROB : 
-                ((valid_from_ls_cdb && Q2_from_dsp == rob_id_from_ls_cdb) ? `ZERO_ROB : Q2_from_dsp);
-                
-                V1[tail] <= (valid_from_rs_cdb && Q1_from_dsp == rob_id_from_rs_cdb) ? result_from_rs_cdb : 
-                ((valid_from_ls_cdb && Q1_from_dsp == rob_id_from_ls_cdb) ? result_from_ls_cdb : V1_from_dsp);
-                
-                V2[tail] <= (valid_from_rs_cdb && Q2_from_dsp == rob_id_from_rs_cdb) ? result_from_rs_cdb : 
-                ((valid_from_ls_cdb && Q2_from_dsp == rob_id_from_ls_cdb) ? result_from_ls_cdb : V2_from_dsp);
-
+                openum[tail] <= openum_from_dsp;          
+                Q1[tail] <= real_Q1;
+                Q2[tail] <= real_Q2;
+                V1[tail] <= real_V1;
+                V2[tail] <= real_V2;
                 imm[tail] <= imm_from_dsp;
                 rob_id[tail] <= rob_id_from_dsp;
                 is_committed[tail] <= `FALSE;
                 tail <= next_tail;
 `ifdef DEBUG
-                dbg_insert_Q1 <= (valid_from_rs_cdb && Q1_from_dsp == rob_id_from_rs_cdb) ? `ZERO_ROB : 
-                ((valid_from_ls_cdb && Q1_from_dsp == rob_id_from_ls_cdb) ? `ZERO_ROB : Q1_from_dsp);
-
-                dbg_insert_Q2 <= (valid_from_rs_cdb && Q2_from_dsp == rob_id_from_rs_cdb) ? `ZERO_ROB : 
-                ((valid_from_ls_cdb && Q2_from_dsp == rob_id_from_ls_cdb) ? `ZERO_ROB : Q2_from_dsp);
+                dbg_insert_Q1 <= real_Q1;
+                dbg_insert_Q2 <= real_Q2;
 `endif
         end
     end
