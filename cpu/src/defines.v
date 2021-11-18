@@ -18,7 +18,7 @@
 `define ZERO_REG 5'h0
 `define ZERO_RS 5'h0
 `define INVALID_RS 5'h10
-`define ZERO_LSB 5'h0
+`define ZERO_LSB 6'h0
 `define INVALID_LSB 6'h20
 `define ZERO_ROB 5'h0
 

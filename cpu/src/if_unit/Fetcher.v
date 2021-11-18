@@ -1,5 +1,4 @@
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/if_unit/ICache.v"
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
 
 module Fetcher(
     input wire clk,
@@ -41,35 +40,27 @@ reg [`STATUS_TYPE] status;
 // pc reg
 reg [`ADDR_TYPE] pc, mem_pc;
 
-// icache
-wire hit;
-wire [`INS_TYPE] inst_from_icache;
-reg ena_to_icache;
-reg [`ADDR_TYPE] addr_to_icache;
-reg [`INS_TYPE] inst_to_icache;
-
 // predictor
 wire predicted_jump;
 wire [`ADDR_TYPE] predicted_target_pc;
 
+// icache
+
+integer i;
+
+`define ICACHE_SIZE 64
+`define INDEX_RANGE 7:2
+
+reg valid [`ICACHE_SIZE - 1 : 0];
+reg [`ADDR_TYPE] tag_store [`ICACHE_SIZE - 1 : 0];
+reg [`INS_TYPE] data_store [`ICACHE_SIZE - 1 : 0];
+
+wire hit = valid[pc[`INDEX_RANGE]] && (tag_store[pc[`INDEX_RANGE]] == pc);
+wire [`INS_TYPE] returned_inst = (hit) ? data_store[pc[`INDEX_RANGE]] : `ZERO_WORD;
+
 // stall for debug
 integer cnt = 0;
 parameter wait_clock = 8;
-
-ICache icache (
-    .clk(clk),
-    .rst(rst),
-
-    // query
-    .query_pc(pc),
-    .hit(hit),
-    .returned_inst(inst_from_icache),
-
-    // put into icache
-    .ena_from_if(ena_to_icache),
-    .addr_from_if(addr_to_icache),
-    .inst_from_if(inst_to_icache)
-);
 
 always @(posedge clk) begin
     if (rst) begin
@@ -80,9 +71,6 @@ always @(posedge clk) begin
         status <= STATUS_IDLE;
         // ena        
         ena_to_mc <= `FALSE;
-        ena_to_icache <= `FALSE;
-        addr_to_icache <= `ZERO_ADDR;
-        inst_to_icache <= `ZERO_WORD;
         // to dcd & dsp
         pc_to_dsp <= `ZERO_ADDR;
         ok_flag_to_dsp <= `FALSE;
@@ -90,6 +78,12 @@ always @(posedge clk) begin
         // to mc
         pc_to_mc <= `ZERO_ADDR;
         drop_flag_to_mc <= `FALSE;
+        // icache
+        for (i = 0; i < `ICACHE_SIZE; i=i+1) begin
+            valid[i] <= `FALSE;
+            tag_store[i] <= `ZERO_ADDR;
+            data_store[i] <= `ZERO_WORD;
+        end
     end
     else if (~rdy) begin
     end
@@ -99,7 +93,6 @@ always @(posedge clk) begin
         mem_pc <= target_pc_from_rob;
         status <= STATUS_IDLE;
         ena_to_mc <= `FALSE;
-        ena_to_icache <= `FALSE;
         ok_flag_to_dsp <= `FALSE;
         drop_flag_to_mc <= `TRUE;
     end
@@ -110,7 +103,7 @@ always @(posedge clk) begin
             pc_to_dsp <= pc;
             //pc <= (predicted_jump) ? predicted_target_pc : pc + `NEXT_PC;
             pc <= pc + `NEXT_PC;
-            inst_to_dcd <= inst_from_icache;
+            inst_to_dcd <= returned_inst;
             ok_flag_to_dsp <= `TRUE;
         end
         else begin
@@ -118,7 +111,6 @@ always @(posedge clk) begin
         end
 
         drop_flag_to_mc <= `FALSE;
-        ena_to_icache <= `FALSE;
         ena_to_mc <= `FALSE; // memctrl is woring now, so no duplicate request
 
         // if rdy and no components full, start working
@@ -132,11 +124,11 @@ always @(posedge clk) begin
             // memctrl ok
             if (ok_flag_from_mc) begin
                 // put into icache
-                ena_to_icache <= `TRUE;
-                addr_to_icache <= mem_pc;
-                mem_pc <= mem_pc + 4;
-                inst_to_icache <= inst_from_mc;
+                mem_pc <= mem_pc + `NEXT_PC;
                 status <= STATUS_IDLE;
+                valid[mem_pc[`INDEX_RANGE]] <= `TRUE;
+                tag_store[mem_pc[`INDEX_RANGE]] <= mem_pc;
+                data_store[mem_pc[`INDEX_RANGE]] <= inst_from_mc;
             end
         end
     end

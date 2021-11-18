@@ -1,6 +1,6 @@
-/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/
-/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/
+C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/
+C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/
 
 regex
 
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/.*"
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/.*"

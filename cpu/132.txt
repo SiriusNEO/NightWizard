@@ -1,2 +1,0 @@
-一些有趣的跟riscv有关的东西：
-vivado2018.2，可以理解为是verilog的ide（windows和linux的安装都在这个包里了）（这个东西如此庞大以至于这次小作业大概用不到）：https://jbox.sjtu.edu.cn/l/noXqCD

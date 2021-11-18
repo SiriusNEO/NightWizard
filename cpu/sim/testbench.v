@@ -23,7 +23,11 @@ initial begin
   rdy=1;
   repeat(50) #1 clk=!clk;
   rst=0; 
-  forever #1 clk=!clk;
+  forever begin
+    #1 clk=!clk;
+    cnt=cnt+1;
+    if (cnt%100000==0) $display(cnt);
+  end
   $finish;
 end
 

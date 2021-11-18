@@ -1,4 +1,6 @@
 /cpu/testcase/
+/cpu/testcase_selfmade/
+/cpu/testcase_sim/
 /cpu/test/
 /cpu/out/
 NightWizard.xpr
