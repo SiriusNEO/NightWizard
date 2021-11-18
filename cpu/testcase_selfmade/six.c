@@ -1,5 +1,5 @@
 #include "io.h"
 
 int main() {
-    outlln(666);
+    outlln(6);
 }

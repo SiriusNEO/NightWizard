@@ -1,21 +1,21 @@
 // RISCV32I CPU top module
 // port modification allowed for debugging purposes
 
-`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
+`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
 
-`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/if_unit/Fetcher.v"
+`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/if_unit/Fetcher.v"
 
-`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/id_unit/Dispatcher.v"
-`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/id_unit/Decoder.v"
+`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/id_unit/Dispatcher.v"
+`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/id_unit/Decoder.v"
 
-`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/ex_unit/RS.v"
-`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/ex_unit/RS_EX.v"
-`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/ex_unit/LSBuffer.v"
-`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/ex_unit/LS_EX.v"
+`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/ex_unit/RS.v"
+`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/ex_unit/RS_EX.v"
+`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/ex_unit/LSBuffer.v"
+`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/ex_unit/LS_EX.v"
 
-`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/pub_unit/MemCtrl.v"
-`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/pub_unit/RegFile.v"
-`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/pub_unit/ReOrderBuffer.v"
+`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/pub_unit/MemCtrl.v"
+`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/pub_unit/RegFile.v"
+`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/pub_unit/ReOrderBuffer.v"
 
 module cpu(
   input  wire                 clk_in,			// system clock signal
@@ -268,8 +268,6 @@ Dispatcher dispatcher(
 );
 
 Decoder decoder(
-  .ena(rdy_in),
-
   .inst(inst_if_dcd),
 
   .openum(openum_dcd_dsp),
@@ -282,6 +280,7 @@ Decoder decoder(
 RS rs(
   .clk(clk_in),
   .rst(rst_in),
+  .rdy(rdy_in),
 
   // from dsp
   .ena_from_dsp(ena_dsp_rs),
@@ -336,6 +335,7 @@ RS_EX rs_ex(
 LSBuffer lsBuffer(
   .clk(clk_in),
   .rst(rst_in),
+  .rdy(rdy_in),
 
   // from dsp
   .ena_from_dsp(ena_dsp_lsb),
@@ -385,6 +385,8 @@ LSBuffer lsBuffer(
 LS_EX ls_ex(
   .clk(clk_in),
   .rst(rst_in),
+  .rdy(rdy_in),
+
   .ena(ena_ls_ex),
   .openum(openum_ls_ex),
   .mem_addr(mem_addr_ls_ex),
@@ -415,6 +417,7 @@ LS_EX ls_ex(
 ReOrderBuffer reOrderBuffer(
   .clk(clk_in),
   .rst(rst_in),
+  .rdy(rdy_in),
 
   // reply to dsp_ready query
   // from dsp
@@ -496,6 +499,7 @@ MemCtrl memCtrl(
 );
 
 RegFile regFile(
+  .clk(clk_in),
   .rst(rst_in),
 
   // from dsp

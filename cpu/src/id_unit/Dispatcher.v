@@ -1,4 +1,4 @@
-`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
+`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
 
 module Dispatcher(
     input wire clk,
@@ -56,7 +56,7 @@ module Dispatcher(
     output reg [`ROB_ID_TYPE] Q1_to_rs,
     output reg [`ROB_ID_TYPE] Q2_to_rs,
     output reg [`ADDR_TYPE] pc_to_rs,
-    output reg [`ADDR_TYPE] imm_to_rs,
+    output reg [`DATA_TYPE] imm_to_rs,
     output wire [`ROB_ID_TYPE] rob_id_to_rs,
 
     // to ls
@@ -66,7 +66,7 @@ module Dispatcher(
     output reg [`DATA_TYPE] V2_to_lsb,
     output reg [`ROB_ID_TYPE] Q1_to_lsb,
     output reg [`ROB_ID_TYPE] Q2_to_lsb,
-    output reg [`ADDR_TYPE] imm_to_lsb,
+    output reg [`DATA_TYPE] imm_to_lsb,
     output wire [`ROB_ID_TYPE] rob_id_to_lsb,
 
     // from rs cdb
@@ -106,6 +106,8 @@ always @(posedge clk) begin
         ena_to_rs <= `FALSE;
         ena_to_lsb <= `FALSE;
         ena_to_reg <= `FALSE;
+    end
+    else if (~rdy) begin
     end
     else begin
         ena_to_rob <= `FALSE;

@@ -1,8 +1,9 @@
-`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
+`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
 
 module LSBuffer (
     input wire clk,
     input wire rst,
+    input wire rdy,
 
     // from dsp
     input wire ena_from_dsp,
@@ -50,8 +51,8 @@ module LSBuffer (
     input wire commit_jump_flag_from_rob
 );
 
-reg [`LSB_POS_TYPE] head, tail;
-wire [`LSB_POS_TYPE] next_head = (head == `LSB_SIZE - 1) ? 0 : head + 1, 
+reg [`LSB_ID_TYPE] head, tail, store_tail;
+wire [`LSB_ID_TYPE] next_head = (head == `LSB_SIZE - 1) ? 0 : head + 1, 
 next_tail = (tail == `LSB_SIZE - 1) ? 0 : tail + 1;
 
 reg empty_signal;
@@ -74,7 +75,6 @@ reg store_to_rob_lock; // avoid to send twice
 
 // index
 integer i;
-integer store_tail;
 
 wire [`ROB_ID_TYPE] real_Q1 = (valid_from_rs_cdb && Q1_from_dsp == rob_id_from_rs_cdb) ? `ZERO_ROB : ((valid_from_ls_cdb && Q1_from_dsp == rob_id_from_ls_cdb) ? `ZERO_ROB : Q1_from_dsp);
 wire [`ROB_ID_TYPE] real_Q2 = (valid_from_rs_cdb && Q2_from_dsp == rob_id_from_rs_cdb) ? `ZERO_ROB : ((valid_from_ls_cdb && Q2_from_dsp == rob_id_from_ls_cdb) ? `ZERO_ROB : Q2_from_dsp);
@@ -90,11 +90,11 @@ integer dbg_update_index_from_rs = -1;
 integer dbg_update_result = -1;
 
 always @(posedge clk) begin
-    if (rst == `TRUE || (commit_jump_flag_from_rob == `TRUE && store_tail == -1)) begin
+    if (rst == `TRUE || (commit_jump_flag_from_rob == `TRUE && store_tail == `INVALID_LSB)) begin
         empty_signal <= `TRUE;
         head <= `ZERO_LSB;
         tail <= `ZERO_LSB;
-        store_tail <= -1;
+        store_tail <= `INVALID_LSB;
         for (i = 0; i < `LSB_SIZE; i=i+1) begin
             busy[i] <= `FALSE;
             openum[i] <= `OPENUM_NOP;
@@ -109,6 +109,8 @@ always @(posedge clk) begin
         ena_to_ex <= `FALSE;
         store_rob_id_to_rob <= `ZERO_ROB;
         store_to_rob_lock <= `FALSE;
+    end
+    else if (~rdy) begin
     end
     else if (commit_jump_flag_from_rob == `TRUE) begin
         tail <= (store_tail == `LSB_SIZE - 1) ? 0 : store_tail + 1;
@@ -148,7 +150,7 @@ always @(posedge clk) begin
                     empty_signal <= (next_head == tail);
                     store_to_rob_lock <= `FALSE;
                     if (store_tail == head)
-                        store_tail <= -1;
+                        store_tail <= `INVALID_LSB;
                 end
                 else begin
                     // notify rob to commit store inst first

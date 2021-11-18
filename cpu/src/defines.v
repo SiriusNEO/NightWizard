@@ -1,10 +1,7 @@
 `timescale 1ns / 1ps
 
-`ifdef DEFINES
-`else
-
 // debug macro
-// `define DEBUG
+`define DEBUG
 
 // flag: protocol with ram.v
 `define FLAG_READ 1'b0
@@ -19,21 +16,28 @@
 `define ZERO_ADDR 32'h0
 `define ZERO_WORD 32'h0
 `define ZERO_REG 5'h0
-`define ZERO_RS 4'h0
+`define ZERO_RS 5'h0
+`define INVALID_RS 5'h10
 `define ZERO_LSB 5'h0
+`define INVALID_LSB 6'h20
 `define ZERO_ROB 5'h0
 
 // vec type
+`define STATUS_TYPE 2:0
 `define INT_TYPE 31:0
 `define MEMPORT_TYPE 7:0
 `define INS_TYPE 31:0
 `define ADDR_TYPE 31:0
 `define DATA_TYPE 31:0
 `define OPENUM_TYPE 5:0
+
+// notice: ID_TYPE always 1-bit wider than POS_TYPE
 `define REG_POS_TYPE 4:0
 `define ROB_POS_TYPE 4:0
+
+`define RS_ID_TYPE 4:0
 `define ROB_ID_TYPE 5:0
-`define LSB_POS_TYPE 4:0
+`define LSB_ID_TYPE 5:0
 
 // components size
 `define REG_SIZE 32
@@ -152,5 +156,3 @@
 // func7 
 `define FUNC7_NORM 7'b0000000
 `define FUNC7_SPEC 7'b0100000
-
-`endif

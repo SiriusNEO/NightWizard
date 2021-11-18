@@ -7,6 +7,7 @@ module testbench;
 
 reg clk;
 reg rst;
+reg rdy;
 
 riscv_top #(.SIM(1)) top(
     .EXCLK(clk),
@@ -15,14 +16,14 @@ riscv_top #(.SIM(1)) top(
     .Rx(),
     .led()
 );
-
+integer cnt = 0;
 initial begin
   clk=0;
   rst=1;
+  rdy=1;
   repeat(50) #1 clk=!clk;
   rst=0; 
   forever #1 clk=!clk;
-  // repeat(3000) #1 clk=!clk;
   $finish;
 end
 

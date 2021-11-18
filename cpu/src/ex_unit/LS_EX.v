@@ -1,8 +1,10 @@
-`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
+`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
 
 module LS_EX (
     input wire clk,
     input wire rst,
+    input wire rdy,
+
     input wire ena,
     input wire [`OPENUM_TYPE] openum,
     input wire [`ADDR_TYPE] mem_addr,
@@ -39,9 +41,9 @@ STATUS_LBU = 4,
 STATUS_LHU = 5,
 STATUS_STORE = 6;
 
-integer status;
+reg [`STATUS_TYPE] status;
 
-assign busy_to_lsb = (status != STATUS_IDLE || ena == `TRUE);
+assign busy_to_lsb = (status != STATUS_IDLE || ena);
 
 // debug
 integer debug_ls_openum = -1;
@@ -49,19 +51,21 @@ integer debug_ls_addr = -1;
 integer debug_ls_data = -1;
 
 always @(posedge clk) begin
-    if (rst == `TRUE) begin
+    if (rst) begin
         ena_to_mc <= `FALSE;
         valid <= `FALSE;
         status <= STATUS_IDLE;
     end
+    else if (~rdy) begin
+    end
     else begin
         if (status != STATUS_IDLE) begin
             ena_to_mc <= `FALSE;    
-            if (commit_jump_flag_from_rob == `TRUE && status != STATUS_STORE) begin
+            if (commit_jump_flag_from_rob && status != STATUS_STORE) begin
                 status <= STATUS_IDLE;
             end
             else begin
-                if (ok_flag_from_mc == `TRUE) begin
+                if (ok_flag_from_mc) begin
                     if (status != STATUS_STORE) begin
                         valid <= `TRUE;
                         case (status)

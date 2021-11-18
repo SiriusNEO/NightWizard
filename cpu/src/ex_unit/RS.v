@@ -1,8 +1,9 @@
-`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
+`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
 
 module RS (
     input wire clk,
     input wire rst,
+    input wire rdy,
 
     // from dsp
     input wire ena_from_dsp,
@@ -57,8 +58,8 @@ reg [`ROB_ID_TYPE] rob_id [`RS_SIZE - 1 : 0];
 
 // index
 integer i;
-integer free_index;
-integer exec_index;
+wire [`RS_ID_TYPE] free_index;
+wire [`RS_ID_TYPE] exec_index;
 
 // signal
 wire full_signal = (free_index == -1);
@@ -80,20 +81,44 @@ wire [`ROB_ID_TYPE] real_Q2 = (valid_from_rs_cdb && Q2_from_dsp == rob_id_from_r
 wire [`DATA_TYPE] real_V1 = (valid_from_rs_cdb && Q1_from_dsp == rob_id_from_rs_cdb) ? result_from_rs_cdb : ((valid_from_ls_cdb && Q1_from_dsp == rob_id_from_ls_cdb) ? result_from_ls_cdb : V1_from_dsp);
 wire [`DATA_TYPE] real_V2 = (valid_from_rs_cdb && Q2_from_dsp == rob_id_from_rs_cdb) ? result_from_rs_cdb : ((valid_from_ls_cdb && Q2_from_dsp == rob_id_from_ls_cdb) ? result_from_ls_cdb : V2_from_dsp);
 
-always @(*) begin
-    free_index = -1;
-    exec_index = -1;
+assign free_index = ~busy[0] ? 0 :
+                    (~busy[1] ? 1 :
+                    (~busy[2] ? 2 :
+                    (~busy[3] ? 3 :
+                    (~busy[4] ? 4 :
+                    (~busy[5] ? 5 :
+                    (~busy[6] ? 6 :
+                    (~busy[7] ? 7 :
+                    (~busy[8] ? 8 :
+                    (~busy[9] ? 9 :
+                    (~busy[10] ? 10 :
+                    (~busy[11] ? 11 :
+                    (~busy[12] ? 12 :
+                    (~busy[13] ? 13 :
+                    (~busy[14] ? 14 :
+                    (~busy[15] ? 15 :
+                    `INVALID_RS)))))))))))))));
 
-    for (i = `RS_SIZE - 1; i >= 0; i=i-1) begin
-        if (busy[i] == `FALSE) 
-            free_index = i;
-        if (busy[i] == `TRUE && Q1[i] == `ZERO_ROB && Q2[i] == `ZERO_ROB) 
-            exec_index = i;
-    end
-end
+assign exec_index = (busy[0] && Q1[0] == `ZERO_ROB && Q2[0] == `ZERO_ROB) ? 0 :
+                    ((busy[1] && Q1[1] == `ZERO_ROB && Q2[1] == `ZERO_ROB) ? 1 :
+                    ((busy[2] && Q1[2] == `ZERO_ROB && Q2[2] == `ZERO_ROB) ? 2 :
+                    ((busy[3] && Q1[3] == `ZERO_ROB && Q2[3] == `ZERO_ROB) ? 3 :
+                    ((busy[4] && Q1[4] == `ZERO_ROB && Q2[4] == `ZERO_ROB) ? 4 :
+                    ((busy[5] && Q1[5] == `ZERO_ROB && Q2[5] == `ZERO_ROB) ? 5 :
+                    ((busy[6] && Q1[6] == `ZERO_ROB && Q2[6] == `ZERO_ROB) ? 6 :
+                    ((busy[7] && Q1[7] == `ZERO_ROB && Q2[7] == `ZERO_ROB) ? 7 :
+                    ((busy[8] && Q1[8] == `ZERO_ROB && Q2[8] == `ZERO_ROB) ? 8 :
+                    ((busy[9] && Q1[9] == `ZERO_ROB && Q2[9] == `ZERO_ROB) ? 9 :
+                    ((busy[10] && Q1[10] == `ZERO_ROB && Q2[10] == `ZERO_ROB) ? 10 :
+                    ((busy[11] && Q1[11] == `ZERO_ROB && Q2[11] == `ZERO_ROB) ? 11 :
+                    ((busy[12] && Q1[12] == `ZERO_ROB && Q2[12] == `ZERO_ROB) ? 12 :
+                    ((busy[13] && Q1[13] == `ZERO_ROB && Q2[13] == `ZERO_ROB) ? 13 :
+                    ((busy[14] && Q1[14] == `ZERO_ROB && Q2[14] == `ZERO_ROB) ? 14 :
+                    ((busy[15] && Q1[15] == `ZERO_ROB && Q2[15] == `ZERO_ROB) ? 15 :
+                    `INVALID_RS)))))))))))))));               
 
 always @(posedge clk) begin
-    if (rst == `TRUE || commit_jump_flag_from_rob == `TRUE) begin
+    if (rst || commit_jump_flag_from_rob) begin
         for (i = 0; i < `RS_SIZE; i=i+1) begin
             busy[i] <= `FALSE;
             pc[i] <= `ZERO_ADDR;
@@ -106,9 +131,11 @@ always @(posedge clk) begin
             rob_id[i] <= `ZERO_ROB;
         end
     end 
+    else if (~rdy) begin
+    end
     else begin
         // exec
-        if (exec_index == -1) begin
+        if (exec_index == `INVALID_RS) begin
             openum_to_ex <= `OPENUM_NOP;
         end
         else begin
@@ -156,7 +183,7 @@ always @(posedge clk) begin
             end
         end
 
-        if (ena_from_dsp == `TRUE) begin
+        if (ena_from_dsp == `TRUE && free_index != `INVALID_RS) begin
             // insert to rs
             busy[free_index]  <= `TRUE;
             openum[free_index] <= openum_from_dsp;  
