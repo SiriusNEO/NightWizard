@@ -19,7 +19,6 @@ module ReOrderBuffer (
     // from dsp
     input wire ena_from_dsp,
     input wire [`REG_POS_TYPE] rd_from_dsp,
-    input wire is_io_from_dsp,
     // to dsp
     output wire [`ROB_ID_TYPE] rob_id_to_dsp,
 
@@ -40,6 +39,7 @@ module ReOrderBuffer (
     
     // from lsb
     input wire [`ROB_ID_TYPE] req_rob_id_from_lsb,
+    input wire [`ROB_ID_TYPE] io_rob_id_from_lsb,
 
     // commit
     output reg commit_flag,
@@ -145,6 +145,7 @@ always @(posedge clk) begin
             end
             busy[head] <= `FALSE;
             ready[head] <= `FALSE;
+            is_io[head] <= `FALSE;
             head <= next_head;
             rob_element_cnt <= rob_element_cnt - 1;
 `ifdef DEBUG
@@ -169,14 +170,6 @@ always @(posedge clk) begin
             dbg_update_from_rs_jump_flag <= jump_flag_from_rs_cdb;
 `endif
         end
-        
-        // commit directly
-        if (busy[req_rob_id_from_lsb - 1]  && req_rob_id_from_lsb != `ZERO_ROB) begin
-            ready[req_rob_id_from_lsb - 1] <= `TRUE;
-`ifdef DEBUG
-            dbg_store_commit_request <= req_rob_id_from_lsb;
-`endif
-        end
 
         if (busy[rob_id_from_ls_cdb - 1]  && valid_from_ls_cdb) begin
             ready[rob_id_from_ls_cdb - 1] <= `TRUE; 
@@ -185,12 +178,25 @@ always @(posedge clk) begin
             dbg_update_from_lsb <= rob_id_from_ls_cdb;
 `endif
         end
+        
+        // commit directly
+        if (req_rob_id_from_lsb != `ZERO_ROB && busy[req_rob_id_from_lsb - 1]) begin
+            ready[req_rob_id_from_lsb - 1] <= `TRUE;
+`ifdef DEBUG
+            dbg_store_commit_request <= req_rob_id_from_lsb;
+`endif
+        end
+
+        // commit directly
+        if (io_rob_id_from_lsb != `ZERO_ROB && busy[io_rob_id_from_lsb - 1]) begin
+            is_io[io_rob_id_from_lsb - 1] <= `TRUE;
+        end
 
         if (ena_from_dsp) begin
             // insert
             rob_element_cnt <= rob_element_cnt + 1;
             busy[tail] <= `TRUE;
-            is_io[tail] <= is_io_from_dsp;
+            is_io[tail] <= `FALSE;
             rd[tail] <= rd_from_dsp;
             data[tail] <= `ZERO_WORD;
             target_pc[tail] <= `ZERO_ADDR;

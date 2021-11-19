@@ -118,7 +118,7 @@ always @(*) begin
         end
     endcase
     
-    // notice: branch & store also has result for debug purpose
+    // notice: branch also has result for debug purpose
     // these result will be written to zero reg, so no influence
     
     if (openum >= `OPENUM_BEQ && openum <= `OPENUM_BGEU) begin

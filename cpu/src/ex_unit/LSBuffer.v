@@ -45,8 +45,9 @@ module LSBuffer (
     input wire [`ROB_ID_TYPE] rob_id_from_ls_cdb,
     input wire [`DATA_TYPE] result_from_ls_cdb,
 
-    // to rob: make commit
+    // to rob: make commit or notify io
     output reg [`ROB_ID_TYPE] req_rob_id_to_rob,
+    output wire [`ROB_ID_TYPE] io_rob_id_to_rob,
 
     // jump_flag
     input wire commit_jump_flag_from_rob
@@ -71,6 +72,9 @@ reg [`ROB_ID_TYPE] Q2 [`LSB_SIZE - 1 : 0];
 reg [`ROB_ID_TYPE] rob_id [`LSB_SIZE - 1 : 0];
 reg is_committed [`LSB_SIZE - 1 : 0];
 // store should wait to be commited
+
+wire [`ADDR_TYPE] head_addr = V1[head] + imm[head];
+assign io_rob_id_to_rob = (head_addr == `RAM_IO_PORT) ? rob_id[head] : `ZERO_ROB;
 
 reg req_to_rob_lock; // avoid to send twice
 
@@ -122,17 +126,20 @@ always @(posedge clk) begin
                 busy[i] <= `FALSE;
     end
     else begin
+        ena_to_ex <= `FALSE;
+        req_rob_id_to_rob <= `ZERO_ROB;
+
         // exec
         if (busy[head] && busy_from_ex == `FALSE && Q1[head] == `ZERO_ROB && Q2[head] == `ZERO_ROB) begin
             // load
             if (openum[head] <= `OPENUM_LHU) begin
-                if (V1[head] + imm[head] != `RAM_IO_PORT || head_io_rob_id_from_rob == rob_id[head]) begin
+                if (head_addr != `RAM_IO_PORT || head_io_rob_id_from_rob == rob_id[head]) begin
                     busy[head] <= `FALSE;
                     rob_id[head] <= `ZERO_ROB; 
                     is_committed[head] <= `FALSE;
                     ena_to_ex <= `TRUE;
                     openum_to_ex <= openum[head];
-                    mem_addr_to_ex <= V1[head] + imm[head];
+                    mem_addr_to_ex <= head_addr;
                     rob_id_to_cdb <= rob_id[head];
                     head <= next_head;
                     empty_signal <= (next_head == tail);
@@ -146,7 +153,7 @@ always @(posedge clk) begin
                     is_committed[head] <= `FALSE;
                     ena_to_ex <= `TRUE;
                     openum_to_ex <= openum[head];
-                    mem_addr_to_ex <= V1[head] + imm[head];
+                    mem_addr_to_ex <= head_addr;
                     store_value_to_ex <= V2[head];
                     rob_id_to_cdb <= rob_id[head];
                     head <= next_head;
@@ -157,20 +164,12 @@ always @(posedge clk) begin
                 end
                 else begin
                     // notify rob to commit store inst first
-                    ena_to_ex <= `FALSE;
                     if (req_to_rob_lock == `FALSE) begin
                         req_rob_id_to_rob <= rob_id[head];
                         req_to_rob_lock <= `TRUE;
                     end
-                    else begin
-                        req_rob_id_to_rob <= `ZERO_ROB;
-                    end
                 end
             end
-        end
-        else begin
-            ena_to_ex <= `FALSE;
-            req_rob_id_to_rob <= `ZERO_ROB;
         end
         
         // update when commit

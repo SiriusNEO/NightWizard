@@ -78,7 +78,12 @@ always @(*) begin
         if (ena_from_dsp && (rd_from_rob == rd_from_dsp)) begin
             if (shadow_Q_from_dsp == Q_from_rob) shadow_commit_Q_elim = `TRUE;
         end
-        else if (Q[rd_from_rob] == Q_from_rob) shadow_commit_Q_elim = `TRUE; 
+        else if (Q[rd_from_rob] == Q_from_rob) shadow_commit_Q_elim = `TRUE;
+`ifdef DEBUG
+        dbg_cmupd_Q = Q_from_rob;
+        dbg_cmupd_V = V_from_rob;
+        dbg_cmupd_rd = rd_from_rob;
+`endif
     end
 end
 

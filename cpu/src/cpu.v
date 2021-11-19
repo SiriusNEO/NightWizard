@@ -81,7 +81,6 @@ wire [`ROB_ID_TYPE] rob_id_dsp_lsb;
 // dispatcher and rob
 wire ena_dsp_rob;
 wire [`REG_POS_TYPE] rd_dsp_rob;
-wire is_io_dsp_rob;
 wire [`ROB_ID_TYPE] rob_id_rob_dsp;
 
 wire [`ROB_ID_TYPE] Q1_dsp_rob;
@@ -118,6 +117,7 @@ wire [`ADDR_TYPE] target_pc_rob_if;
 // rob and lsb
 wire [`ROB_ID_TYPE] rob_id_rob_lsb;
 wire [`ROB_ID_TYPE] req_rob_id_lsb_rob;
+wire [`ROB_ID_TYPE] io_rob_id_lsb_rob;
 wire [`ROB_ID_TYPE] head_io_rob_id_rob_lsb;
 
 // rs and rs_ex
@@ -199,7 +199,6 @@ Dispatcher dispatcher(
   // to rob
   .ena_to_rob(ena_dsp_rob),
   .rd_to_rob(rd_dsp_rob),
-  .is_io_to_rob(is_io_dsp_rob),
   // from rob
   .rob_id_from_rob(rob_id_rob_dsp),
 
@@ -336,8 +335,9 @@ LSBuffer lsBuffer(
   // from ls ex
   .busy_from_ex(busy_ex_ls),
 
-  // to rob: make store commit
+  // to rob
   .req_rob_id_to_rob(req_rob_id_lsb_rob),
+  .io_rob_id_to_rob(io_rob_id_lsb_rob),
 
   // update when commit
   // from rob
@@ -409,7 +409,6 @@ ReOrderBuffer reOrderBuffer(
   // from dsp
   .ena_from_dsp(ena_dsp_rob),
   .rd_from_dsp(rd_dsp_rob),
-  .is_io_from_dsp(is_io_dsp_rob),
   // to dsp
   .rob_id_to_dsp(rob_id_rob_dsp),
 
@@ -430,6 +429,7 @@ ReOrderBuffer reOrderBuffer(
 
   // from lsb
   .req_rob_id_from_lsb(req_rob_id_lsb_rob),
+  .io_rob_id_from_lsb(io_rob_id_lsb_rob),
 
   // commit
   .commit_jump_flag(commit_jump_flag_bus),
