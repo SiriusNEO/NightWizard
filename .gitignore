@@ -1,8 +1,9 @@
-/cpu/testcase/
-/cpu/testcase_selfmade/
-/cpu/testcase_sim/
-/cpu/test/
-/cpu/out/
+cpu/testcase/
+cpu/testcase_selfmade/
+cpu/testcase_sim/
+cpu/test/
+cpu/out/
+bit/*
 NightWizard.xpr
 NightWizard.*/
 .vscode/

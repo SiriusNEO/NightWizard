@@ -172,6 +172,7 @@ Fetcher fetcher(
   .ok_flag_from_mc(ok_flag_mc_if),
   .inst_from_mc(inst_mc_if),
 
+  .commit_flag_from_rob(commit_flag_bus),
   .commit_jump_flag_from_rob(commit_jump_flag_bus),
   .target_pc_from_rob(target_pc_rob_if)
 );

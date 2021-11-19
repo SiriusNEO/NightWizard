@@ -152,6 +152,16 @@ ROB 满 没处理好！（还是没处理好，但是解决了一些问题）
 
 input 数据点 wrong answer，sleep 正常，uart 未解决，其它工作正常
 
-icache 大小会影响 magic
+~~icache 大小会影响 magic~~ 已解决，一个 memctrl 的小问题
 
-regfile 延迟过大
+~~regfile 延迟过大~~ 并不是 regfile，好像是 fetcher 到 dispatcher 部分莫名 WNS 很大，正在尝试各种思路中
+
+TODO：WNS 降低（实在降不了就先放着），input 处理，uart 处理，分支预测
+
+
+
+## 11.19
+
+改 Dispatcher 和 Decoder 结构影响有点大
+
+retiming 之后大概在 -2.9

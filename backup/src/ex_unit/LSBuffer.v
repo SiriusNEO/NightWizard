@@ -56,11 +56,11 @@ wire [`LSB_ID_TYPE] next_head = (head == `LSB_SIZE - 1) ? 0 : head + 1,
 next_tail = (tail == `LSB_SIZE - 1) ? 0 : tail + 1;
 
 reg empty_signal;
-wire full_signal = (empty_signal == `FALSE) && (head == next_tail);
+wire full_signal = (empty_signal == `FALSE) && (head == tail);
 
 assign full_to_if = full_signal;
 
-reg [`LSB_SIZE - 1 : 0] busy;
+reg busy [`LSB_SIZE - 1 : 0];
 reg [`OPENUM_TYPE] openum [`LSB_SIZE - 1 : 0];
 reg [`DATA_TYPE] imm [`LSB_SIZE - 1 : 0];
 reg [`DATA_TYPE] V1 [`LSB_SIZE - 1 : 0];

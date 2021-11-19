@@ -25,6 +25,7 @@ module Fetcher(
     input wire [`INS_TYPE] inst_from_mc,
 
     // from rob
+    input wire commit_flag_from_rob,
     input wire commit_jump_flag_from_rob,
     input wire [`ADDR_TYPE] target_pc_from_rob
 );
@@ -44,18 +45,16 @@ wire predicted_jump;
 wire [`ADDR_TYPE] predicted_target_pc;
 
 // icache
-
 integer i;
 
-`define ICACHE_SIZE 256
-`define INDEX_RANGE 9:2
-`define TAG_RANGE 31:10
+`define ICACHE_SIZE 64
+`define INDEX_RANGE 7:2
 
 reg valid [`ICACHE_SIZE - 1 : 0];
-reg [`TAG_RANGE] tag_store [`ICACHE_SIZE - 1 : 0];
+reg [`ADDR_TYPE] tag_store [`ICACHE_SIZE - 1 : 0];
 reg [`INS_TYPE] data_store [`ICACHE_SIZE - 1 : 0];
 
-wire hit = valid[pc[`INDEX_RANGE]] && (tag_store[pc[`INDEX_RANGE]] == pc[`TAG_RANGE]);
+wire hit = valid[pc[`INDEX_RANGE]] && (tag_store[pc[`INDEX_RANGE]] == pc);
 wire [`INS_TYPE] returned_inst = (hit) ? data_store[pc[`INDEX_RANGE]] : `ZERO_WORD;
 
 // stall for debug
@@ -71,7 +70,7 @@ always @(posedge clk) begin
         status <= STATUS_IDLE;
         // ena        
         ena_to_mc <= `FALSE;
-        // to dcd & dsp
+        // to dsp
         pc_to_dsp <= `ZERO_ADDR;
         ok_flag_to_dsp <= `FALSE;
         inst_to_dsp <= `ZERO_WORD;
@@ -98,7 +97,7 @@ always @(posedge clk) begin
     end
     else begin
         cnt <= (cnt == wait_clock) ? 0 : cnt + 1;
-        if (hit && global_full == `FALSE) begin
+        if (hit && global_full == `FALSE && (cnt == wait_clock - 1)) begin
             // submit the inst to id
             pc_to_dsp <= pc;
             //pc <= (predicted_jump) ? predicted_target_pc : pc + `NEXT_PC;
@@ -127,7 +126,7 @@ always @(posedge clk) begin
                 mem_pc <= mem_pc + `NEXT_PC;
                 status <= STATUS_IDLE;
                 valid[mem_pc[`INDEX_RANGE]] <= `TRUE;
-                tag_store[mem_pc[`INDEX_RANGE]] <= mem_pc[`TAG_RANGE];
+                tag_store[mem_pc[`INDEX_RANGE]] <= mem_pc;
                 data_store[mem_pc[`INDEX_RANGE]] <= inst_from_mc;
             end
         end

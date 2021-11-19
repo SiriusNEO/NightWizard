@@ -65,16 +65,16 @@ wire [`ROB_POS_TYPE] next_head = (head == `ROB_SIZE - 1) ? 0 : head + 1,
                      next_tail = (tail == `ROB_SIZE - 1) ? 0 : tail + 1;
 
 reg [`ROB_POS_TYPE] rob_element_cnt;
-wire full_signal = (rob_element_cnt >= `ROB_SIZE - 4);
+wire full_signal = (rob_element_cnt > (`ROB_SIZE >> 1));
 
 assign full_to_if = full_signal;
 
-reg [`ROB_SIZE - 1 : 0] busy;
-reg [`ROB_SIZE - 1 : 0] ready;
+reg busy [`ROB_SIZE - 1 : 0];
+reg ready [`ROB_SIZE - 1 : 0];
 reg [`REG_POS_TYPE] rd [`ROB_SIZE - 1 : 0];
 reg [`DATA_TYPE] data [`ROB_SIZE - 1 : 0];
 reg [`ADDR_TYPE] target_pc [`ROB_SIZE - 1 : 0];
-reg [`ROB_SIZE - 1 : 0] jump_flag;
+reg jump_flag [`ROB_SIZE - 1 : 0];
 
 // index
 integer i;
@@ -102,7 +102,7 @@ assign ready_data2_to_dsp = (Q2_from_dsp == `ZERO_ROB) ?  `ZERO_WORD : data[Q2_f
 assign rob_id_to_dsp = tail + 1;
 
 always @(posedge clk) begin
-    if (rst || commit_jump_flag) begin
+    if (rst  || commit_jump_flag ) begin
         rob_element_cnt <= `ZERO_ROB;
         head <= `ZERO_ROB;
         tail <= `ZERO_ROB;
@@ -121,7 +121,7 @@ always @(posedge clk) begin
     end
     else begin
         // commit
-        if (busy[head]  && ready[head]) begin
+        if (busy[head]  && ready[head] ) begin
             // commit to regfile
             commit_flag <= `TRUE;
             rd_to_reg <= rd[head];
@@ -150,7 +150,7 @@ always @(posedge clk) begin
         end
 
         // update
-        if (busy[rob_id_from_rs_cdb - 1]  && valid_from_rs_cdb) begin
+        if (busy[rob_id_from_rs_cdb - 1]  && valid_from_rs_cdb ) begin
             ready[rob_id_from_rs_cdb - 1] <= `TRUE;
             data[rob_id_from_rs_cdb - 1] <= result_from_rs_cdb;
             target_pc[rob_id_from_rs_cdb - 1] <= target_pc_from_rs_cdb;
@@ -170,7 +170,7 @@ always @(posedge clk) begin
 `endif
         end
 
-        if (busy[rob_id_from_ls_cdb - 1]  && valid_from_ls_cdb) begin
+        if (busy[rob_id_from_ls_cdb - 1]  && valid_from_ls_cdb ) begin
             ready[rob_id_from_ls_cdb - 1] <= `TRUE; 
             data[rob_id_from_ls_cdb - 1] <= result_from_ls_cdb;
 `ifdef DEBUG

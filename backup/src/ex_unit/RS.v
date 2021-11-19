@@ -46,7 +46,7 @@ module RS (
 // rs store
 // RS Node: busy, pc, openum, V1, V2, Q1, Q2, ROB_id
 // RS[0] left for invalid
-reg [`RS_SIZE - 1 : 0] busy;
+reg busy [`RS_SIZE - 1 : 0];
 reg [`ADDR_TYPE] pc [`RS_SIZE - 1 : 0]; 
 reg [`OPENUM_TYPE] openum [`RS_SIZE - 1 : 0];
 reg [`DATA_TYPE] imm [`RS_SIZE - 1 : 0];

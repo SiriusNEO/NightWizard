@@ -55,27 +55,9 @@ reg [`INT_TYPE] ram_access_counter, ram_access_stop;
 reg [`ADDR_TYPE] ram_access_pc;
 reg [`DATA_TYPE] writing_data;
 
-reg ena_shadow_status, ena_shadow_fetch_valid, ena_shadow_ls_valid;
-
-wire [`STATUS_TYPE] status_magic = (ena_shadow_status) ? STATUS_IDLE : status;
-wire buf_fetch_valid_magic = (ena_shadow_fetch_valid) ? `FALSE : buffered_fetch_valid;
-wire buf_ls_valid_magic = (ena_shadow_ls_valid) ? `FALSE : buffered_ls_valid;
-
-always @(*) begin
-    ena_shadow_status = `FALSE;
-    ena_shadow_ls_valid = `FALSE;
-    ena_shadow_fetch_valid = `FALSE;
-
-    if (drop_flag_from_if) begin
-        if (status == STATUS_FETCH || status == STATUS_LOAD) begin
-            ena_shadow_status = `TRUE;
-        end
-        ena_shadow_fetch_valid = `TRUE;
-        if (buffered_ls_valid == `TRUE && buffered_wr_flag == `FLAG_READ) begin
-            ena_shadow_ls_valid = `TRUE;
-        end
-    end
-end
+wire memctrl_idle_signal = (status == STATUS_IDLE || ((status == STATUS_FETCH || status == STATUS_LOAD) && drop_flag_from_if));
+wire buf_fetch_valid_signal = (buffered_fetch_valid && !drop_flag_from_if);
+wire buf_ls_valid_signal = (buffered_ls_valid && !drop_flag_from_if);
 
 always @(posedge clk) begin
     if (rst == `TRUE) begin
@@ -95,12 +77,16 @@ always @(posedge clk) begin
     else begin
         ok_flag_to_if <= `FALSE;
         ok_flag_to_lsex <= `FALSE;
+        if (drop_flag_from_if) begin
+            if (status == STATUS_FETCH || status == STATUS_LOAD) begin
+                status <= STATUS_IDLE;
+            end
+            buffered_fetch_valid <= `FALSE;
+            if (buffered_ls_valid == `TRUE && buffered_wr_flag == `FLAG_READ)
+                buffered_ls_valid <= `FALSE;
+        end
 
-        if (ena_shadow_status) status <= STATUS_IDLE;
-        if (ena_shadow_fetch_valid) buffered_fetch_valid <= `FALSE;
-        if (ena_shadow_ls_valid) buffered_ls_valid <= `FALSE;
-
-        if (status_magic != STATUS_IDLE || (ena_from_lsex && ena_from_if)) begin
+        if (!memctrl_idle_signal || (ena_from_lsex && ena_from_if)) begin
             // memctrl is busy, so bufferred the query
             if (ena_from_if == `FALSE && ena_from_lsex == `TRUE) begin
                 buffered_ls_valid <= `TRUE;
@@ -115,7 +101,7 @@ always @(posedge clk) begin
             end
         end
 
-        if (status_magic == STATUS_IDLE) begin 
+        if (memctrl_idle_signal) begin 
             // idle, clear work cookie
             ok_flag_to_if <= `FALSE;
             ok_flag_to_lsex <= `FALSE;
@@ -143,7 +129,7 @@ always @(posedge clk) begin
                 end
             end
             // if there is buffered request
-            else if (buf_ls_valid_magic) begin
+            else if (buf_ls_valid_signal) begin
                 if (buffered_wr_flag == `FLAG_WRITE) begin
                     ram_access_counter <= `ZERO_WORD;
                     ram_access_stop <= buffered_size;
@@ -171,7 +157,7 @@ always @(posedge clk) begin
                 wr_flag_to_ram <= `FLAG_READ;
                 status <= STATUS_FETCH;
             end
-            else if (buf_fetch_valid_magic) begin
+            else if (buf_fetch_valid_signal) begin
                 ram_access_counter <= `ZERO_WORD;
                 ram_access_stop <= 32'h4;
                 addr_to_ram <= buffered_pc;
@@ -184,7 +170,7 @@ always @(posedge clk) begin
         // busy
         else begin
             // work
-            if (status_magic == STATUS_FETCH) begin
+            if (status == STATUS_FETCH) begin
                 // fetch inst
                 addr_to_ram <= ram_access_pc;
                 wr_flag_to_ram <= `FLAG_READ;
@@ -197,7 +183,7 @@ always @(posedge clk) begin
                 ram_access_pc <= (ram_access_counter >= ram_access_stop - 32'h1) ? `ZERO_ADDR : ram_access_pc + 32'h1;
                 // stop
                 if (ram_access_counter == ram_access_stop) begin
-                    ok_flag_to_if <= ~drop_flag_from_if;
+                    ok_flag_to_if <= `TRUE;
                     status <= STATUS_IDLE;
                     ram_access_pc <= `ZERO_ADDR;
                     ram_access_counter <= `ZERO_WORD;
@@ -206,7 +192,7 @@ always @(posedge clk) begin
                     ram_access_counter <= ram_access_counter + 32'h1;
                 end
             end
-            else if (status_magic == STATUS_LOAD) begin
+            else if (status == STATUS_LOAD) begin
                 // load
                 addr_to_ram <= ram_access_pc;
                 wr_flag_to_ram <= `FLAG_READ;
@@ -219,7 +205,7 @@ always @(posedge clk) begin
                 ram_access_pc <= (ram_access_counter >= ram_access_stop - 1) ? `ZERO_ADDR : ram_access_pc + 1;
 
                 if (ram_access_counter == ram_access_stop) begin
-                    ok_flag_to_lsex <= ~drop_flag_from_if;
+                    ok_flag_to_lsex <= `TRUE;
                     status <= STATUS_IDLE;
                     ram_access_pc <= `ZERO_ADDR;
                     ram_access_counter <= 0;
@@ -228,7 +214,7 @@ always @(posedge clk) begin
                     ram_access_counter <= ram_access_counter + 1;
                 end
             end
-            else if (status_magic == STATUS_STORE) begin
+            else if (status == STATUS_STORE) begin
                 //store
                 addr_to_ram <= ram_access_pc;
                 wr_flag_to_ram <= `FLAG_WRITE;

@@ -18,9 +18,9 @@
 `define ZERO_REG 5'h0
 `define ZERO_RS 5'h0
 `define INVALID_RS 5'h10
-`define ZERO_LSB 5'h0
-`define INVALID_LSB 5'h10
-`define ZERO_ROB 4'h0
+`define ZERO_LSB 6'h0
+`define INVALID_LSB 6'h20
+`define ZERO_ROB 5'h0
 
 // vec type
 `define STATUS_TYPE 2:0
@@ -33,17 +33,17 @@
 
 // notice: ID_TYPE always 1-bit wider than POS_TYPE
 `define REG_POS_TYPE 4:0
-`define ROB_POS_TYPE 3:0
+`define ROB_POS_TYPE 4:0
 
 `define RS_ID_TYPE 4:0
-`define ROB_ID_TYPE 4:0
-`define LSB_ID_TYPE 4:0
+`define ROB_ID_TYPE 5:0
+`define LSB_ID_TYPE 5:0
 
 // components size
 `define REG_SIZE 32
 `define RS_SIZE  16
-`define LSB_SIZE 16
-`define ROB_SIZE 16
+`define LSB_SIZE 32
+`define ROB_SIZE 32
 
 // 2^6 op enum
 `define OPENUM_NOP     6'd0

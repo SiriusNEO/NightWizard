@@ -1,8 +1,8 @@
-Analysis ResultsSynthesis[Synth 8-2490] overwriting previous definition of module ICache ["C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/if_unit/ICache.v":8]
-[Synth 8-6014] Unused sequential element dbg_tag_store_reg was removed.  ["C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/if_unit/ICache.v":40]
-[Synth 8-3848] Net dbgreg_dout in module/entity cpu does not have driver. ["C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/cpu.v":32]
+Analysis ResultsSynthesis[Synth 8-2490] overwriting previous definition of module ICache ["/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/if_unit/ICache.v":8]
+[Synth 8-6014] Unused sequential element dbg_tag_store_reg was removed.  ["/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/if_unit/ICache.v":40]
+[Synth 8-3848] Net dbgreg_dout in module/entity cpu does not have driver. ["/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/cpu.v":32]
 [Synth 8-3331] design RegFile has unconnected port clk
-[Synth 8-327] inferring latch for variable 'V_reg[31]' ["C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/pub_unit/RegFile.v":39]
+[Synth 8-327] inferring latch for variable 'V_reg[31]' ["/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/pub_unit/RegFile.v":39]
 [Synth 8-3332] Sequential element (V1_reg[31][31]) is unused and will be removed from module LSBuffer.
 [Synth 8-3332] Sequential element (V1_reg[31][30]) is unused and will be removed from module LSBuffer.
 [Synth 8-3332] Sequential element (V1_reg[31][29]) is unused and will be removed from module LSBuffer.
