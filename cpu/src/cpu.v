@@ -1,20 +1,20 @@
 // RISCV32I CPU top module
 // port modification allowed for debugging purposes
 
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
 
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/if_unit/Fetcher.v"
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/if_unit/Fetcher.v"
 
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/id_unit/Dispatcher.v"
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/id_unit/Dispatcher.v"
 
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/ex_unit/RS.v"
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/ex_unit/RS_EX.v"
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/ex_unit/LSBuffer.v"
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/ex_unit/LS_EX.v"
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/ex_unit/RS.v"
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/ex_unit/RS_EX.v"
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/ex_unit/LSBuffer.v"
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/ex_unit/LS_EX.v"
 
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/pub_unit/MemCtrl.v"
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/pub_unit/RegFile.v"
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/pub_unit/ReOrderBuffer.v"
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/pub_unit/MemCtrl.v"
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/pub_unit/RegFile.v"
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/pub_unit/ReOrderBuffer.v"
 
 module cpu(
   input  wire                 clk_in,			// system clock signal
@@ -81,6 +81,7 @@ wire [`ROB_ID_TYPE] rob_id_dsp_lsb;
 // dispatcher and rob
 wire ena_dsp_rob;
 wire [`REG_POS_TYPE] rd_dsp_rob;
+wire is_io_dsp_rob;
 wire [`ROB_ID_TYPE] rob_id_rob_dsp;
 
 wire [`ROB_ID_TYPE] Q1_dsp_rob;
@@ -116,8 +117,8 @@ wire [`ADDR_TYPE] target_pc_rob_if;
 
 // rob and lsb
 wire [`ROB_ID_TYPE] rob_id_rob_lsb;
-
-wire [`ROB_ID_TYPE] store_rob_id_lsb_rob;
+wire [`ROB_ID_TYPE] req_rob_id_lsb_rob;
+wire [`ROB_ID_TYPE] head_io_rob_id_rob_lsb;
 
 // rs and rs_ex
 wire [`OPENUM_TYPE] openum_rs_ex;
@@ -198,6 +199,7 @@ Dispatcher dispatcher(
   // to rob
   .ena_to_rob(ena_dsp_rob),
   .rd_to_rob(rd_dsp_rob),
+  .is_io_to_rob(is_io_dsp_rob),
   // from rob
   .rob_id_from_rob(rob_id_rob_dsp),
 
@@ -335,12 +337,13 @@ LSBuffer lsBuffer(
   .busy_from_ex(busy_ex_ls),
 
   // to rob: make store commit
-  .store_rob_id_to_rob(store_rob_id_lsb_rob),
+  .req_rob_id_to_rob(req_rob_id_lsb_rob),
 
   // update when commit
   // from rob
   .commit_flag_from_rob(commit_flag_bus),
   .rob_id_from_rob(rob_id_rob_lsb),
+  .head_io_rob_id_from_rob(head_io_rob_id_rob_lsb),
 
   // from rs cdb
   .valid_from_rs_cdb(valid_rs_cdb),
@@ -406,6 +409,7 @@ ReOrderBuffer reOrderBuffer(
   // from dsp
   .ena_from_dsp(ena_dsp_rob),
   .rd_from_dsp(rd_dsp_rob),
+  .is_io_from_dsp(is_io_dsp_rob),
   // to dsp
   .rob_id_to_dsp(rob_id_rob_dsp),
 
@@ -425,7 +429,7 @@ ReOrderBuffer reOrderBuffer(
   .result_from_ls_cdb(result_ls_cdb),
 
   // from lsb
-  .store_rob_id_from_lsb(store_rob_id_lsb_rob),
+  .req_rob_id_from_lsb(req_rob_id_lsb_rob),
 
   // commit
   .commit_jump_flag(commit_jump_flag_bus),
@@ -437,7 +441,10 @@ ReOrderBuffer reOrderBuffer(
   // to if
   .target_pc_to_if(target_pc_rob_if),
   // to lsb
-  .rob_id_to_lsb(rob_id_rob_lsb)
+  .rob_id_to_lsb(rob_id_rob_lsb),
+  
+  // io port singal to lsb
+  .head_io_rob_id_to_lsb(head_io_rob_id_rob_lsb)
 );
 
 MemCtrl memCtrl(

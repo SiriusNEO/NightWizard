@@ -1,5 +1,5 @@
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/id_unit/Decoder.v"
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/id_unit/Decoder.v"
 
 module Dispatcher(
     input wire clk,
@@ -25,6 +25,7 @@ module Dispatcher(
     // to rob
     output reg ena_to_rob,
     output reg [`REG_POS_TYPE] rd_to_rob,
+    output reg is_io_to_rob,
     // from rob
     input wire [`ROB_ID_TYPE] rob_id_from_rob,
 
@@ -138,6 +139,7 @@ always @(posedge clk) begin
         imm_to_lsb <= imm_from_dcd;
 
         rd_to_rob <= rd_from_dcd;
+        is_io_to_rob <= `FALSE;
         rd_to_reg <= rd_from_dcd;
 
         ena_to_rob <= `FALSE;
@@ -153,6 +155,8 @@ always @(posedge clk) begin
             // to ls
             if (openum_from_dcd >= `OPENUM_LB && openum_from_dcd <= `OPENUM_SW) begin
                 ena_to_lsb <= `TRUE;
+                // load/store 0x30000
+                is_io_to_rob <= (real_V1 + imm_from_dcd == `RAM_IO_PORT);
             end 
             // to rs
             else begin

@@ -1,4 +1,4 @@
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
 
 module RegFile (
     input wire clk,
@@ -35,55 +35,52 @@ reg [`DATA_TYPE] V [`REG_SIZE - 1 : 0];
 integer i;
 
 // debug
-integer dbg_cmupd_index = -1;
+integer dbg_cmupd_rd = -1;
 integer dbg_cmupd_Q = -1;
 integer dbg_cmupd_V = -1;
 
-// shadow reg
-reg ena_shadow_Q [`REG_SIZE - 1 : 0];
-reg ena_shadow_V [`REG_SIZE - 1 : 0];
-reg [`ROB_ID_TYPE] shadow_Q [`REG_SIZE - 1 : 0];
-reg [`DATA_TYPE] shadow_V [`REG_SIZE - 1 : 0];
+// shadow
+reg shadow_jump_flag_from_rob, shadow_commit_Q_elim; 
+reg [`ROB_ID_TYPE] shadow_Q_from_dsp;
+reg [`REG_POS_TYPE] shadow_rd_from_dsp, shadow_rd_from_rob;
+reg [`DATA_TYPE] shadow_V_from_rob;
 
-assign Q1_to_dsp = ena_shadow_Q[rs1_from_dsp] ? shadow_Q[rs1_from_dsp] : Q[rs1_from_dsp];
-assign Q2_to_dsp = ena_shadow_Q[rs2_from_dsp] ? shadow_Q[rs2_from_dsp] : Q[rs2_from_dsp];
-assign V1_to_dsp = ena_shadow_V[rs1_from_dsp] ? shadow_V[rs1_from_dsp] : V[rs1_from_dsp];
-assign V2_to_dsp = ena_shadow_V[rs2_from_dsp] ? shadow_V[rs2_from_dsp] : V[rs2_from_dsp];
+assign Q1_to_dsp = (shadow_rd_from_rob == rs1_from_dsp && shadow_commit_Q_elim) ? `ZERO_ROB : 
+                   (shadow_rd_from_dsp == rs1_from_dsp ? shadow_Q_from_dsp : 
+                   (shadow_jump_flag_from_rob ? `ZERO_ROB : Q[rs1_from_dsp]));
+assign Q2_to_dsp = (shadow_rd_from_rob == rs2_from_dsp && shadow_commit_Q_elim) ? `ZERO_ROB : 
+                   (shadow_rd_from_dsp == rs2_from_dsp ? shadow_Q_from_dsp : 
+                   (shadow_jump_flag_from_rob ? `ZERO_ROB : Q[rs2_from_dsp]));
+assign V1_to_dsp = (shadow_rd_from_rob == rs1_from_dsp) ? shadow_V_from_rob : V[rs1_from_dsp];
+assign V2_to_dsp = (shadow_rd_from_rob == rs2_from_dsp) ? shadow_V_from_rob : V[rs2_from_dsp];
 
 always @(*) begin
-    for (i = 0; i < `REG_SIZE; i=i+1) begin
-            ena_shadow_Q[i] = `FALSE;
-            ena_shadow_V[i] = `FALSE;
-            shadow_Q[i] = `ZERO_ROB;
-            shadow_V[i] = `ZERO_WORD;
-    end
+    shadow_jump_flag_from_rob = `FALSE;
+
+    shadow_rd_from_dsp = `ZERO_REG;
+    shadow_Q_from_dsp = `ZERO_ROB;
+
+    shadow_rd_from_rob = `ZERO_REG;
+    shadow_commit_Q_elim = `FALSE;
+    shadow_V_from_rob = `ZERO_WORD;
     
-    if (commit_jump_flag_from_rob == `TRUE) begin
-        for (i = 0; i < `REG_SIZE; i=i+1) begin
-            shadow_Q[i] = `ZERO_ROB;
-            ena_shadow_Q[i] = `TRUE;
-        end
+    if (commit_jump_flag_from_rob) begin
+        shadow_jump_flag_from_rob = `TRUE;
     end
-    else if (ena_from_dsp == `TRUE) begin
-        if (rd_from_dsp != `ZERO_REG) begin
-            shadow_Q[rd_from_dsp] = Q_from_dsp;
-            ena_shadow_Q[rd_from_dsp] = `TRUE;
-        end
+    else if (ena_from_dsp == `TRUE && rd_from_dsp != `ZERO_REG) begin
+        shadow_rd_from_dsp = rd_from_dsp;
+        shadow_Q_from_dsp = Q_from_dsp;
     end
 
-    // update when commit
-    if (commit_flag_from_rob == `TRUE) begin
-        // zero reg is immutable
-        if (rd_from_rob != `ZERO_REG) begin
-            shadow_V[rd_from_rob] = V_from_rob;
-            ena_shadow_V[rd_from_rob] = `TRUE;
-            if ((ena_shadow_Q[rd_from_rob] ? shadow_Q[rd_from_rob] : Q[rd_from_rob]) == Q_from_rob) begin
-                shadow_Q[rd_from_rob] = `ZERO_ROB;
-                ena_shadow_Q[rd_from_rob] = `TRUE;
-            end
+    if (commit_flag_from_rob && rd_from_rob != `ZERO_REG) begin
+        shadow_rd_from_rob = rd_from_rob; 
+        shadow_V_from_rob = V_from_rob;
+        if (ena_from_dsp && (rd_from_rob == rd_from_dsp)) begin
+            if (shadow_Q_from_dsp == Q_from_rob) shadow_commit_Q_elim = `TRUE;
         end
+        else if (Q[rd_from_rob] == Q_from_rob) shadow_commit_Q_elim = `TRUE; 
     end
-end   
+end
 
 always @(posedge clk) begin
     if (rst) begin
@@ -93,9 +90,18 @@ always @(posedge clk) begin
         end
     end
     else begin
-        for (i = 0; i < `REG_SIZE; i=i+1) begin
-            if (ena_shadow_Q[i]) Q[i] <= shadow_Q[i];
-            if (ena_shadow_V[i]) V[i] <= shadow_V[i];
+        if (shadow_jump_flag_from_rob) begin
+            for (i = 0; i < `REG_SIZE; i=i+1) begin
+                Q[i] <= `ZERO_ROB;
+            end
+        end
+        else if (shadow_rd_from_dsp != `ZERO_REG) begin
+            Q[shadow_rd_from_dsp] <= shadow_Q_from_dsp;
+        end
+
+        if (shadow_rd_from_rob != `ZERO_REG) begin
+            V[shadow_rd_from_rob] <= shadow_V_from_rob;
+            if (shadow_commit_Q_elim) Q[shadow_rd_from_rob] <= `ZERO_ROB;
         end
     end
 end   

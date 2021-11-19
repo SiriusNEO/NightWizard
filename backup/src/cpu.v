@@ -1,20 +1,20 @@
 // RISCV32I CPU top module
 // port modification allowed for debugging purposes
 
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
 
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/if_unit/Fetcher.v"
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/if_unit/Fetcher.v"
 
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/id_unit/Dispatcher.v"
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/id_unit/Dispatcher.v"
 
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/ex_unit/RS.v"
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/ex_unit/RS_EX.v"
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/ex_unit/LSBuffer.v"
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/ex_unit/LS_EX.v"
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/ex_unit/RS.v"
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/ex_unit/RS_EX.v"
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/ex_unit/LSBuffer.v"
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/ex_unit/LS_EX.v"
 
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/pub_unit/MemCtrl.v"
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/pub_unit/RegFile.v"
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/pub_unit/ReOrderBuffer.v"
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/pub_unit/MemCtrl.v"
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/pub_unit/RegFile.v"
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/pub_unit/ReOrderBuffer.v"
 
 module cpu(
   input  wire                 clk_in,			// system clock signal

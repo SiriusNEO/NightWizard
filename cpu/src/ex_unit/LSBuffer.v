@@ -1,4 +1,4 @@
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
 
 module LSBuffer (
     input wire clk,
@@ -33,6 +33,7 @@ module LSBuffer (
     // from rob
     input wire commit_flag_from_rob,
     input wire [`ROB_ID_TYPE] rob_id_from_rob,
+    input wire [`ROB_ID_TYPE] head_io_rob_id_from_rob,
 
     // from rs cdb
     input wire valid_from_rs_cdb,
@@ -44,8 +45,8 @@ module LSBuffer (
     input wire [`ROB_ID_TYPE] rob_id_from_ls_cdb,
     input wire [`DATA_TYPE] result_from_ls_cdb,
 
-    // to rob: make store commit
-    output reg [`ROB_ID_TYPE] store_rob_id_to_rob,
+    // to rob: make commit
+    output reg [`ROB_ID_TYPE] req_rob_id_to_rob,
 
     // jump_flag
     input wire commit_jump_flag_from_rob
@@ -71,7 +72,7 @@ reg [`ROB_ID_TYPE] rob_id [`LSB_SIZE - 1 : 0];
 reg is_committed [`LSB_SIZE - 1 : 0];
 // store should wait to be commited
 
-reg store_to_rob_lock; // avoid to send twice
+reg req_to_rob_lock; // avoid to send twice
 
 // index
 integer i;
@@ -90,7 +91,7 @@ integer dbg_update_index_from_rs = -1;
 integer dbg_update_result = -1;
 
 always @(posedge clk) begin
-    if (rst == `TRUE || (commit_jump_flag_from_rob == `TRUE && store_tail == `INVALID_LSB)) begin
+    if (rst || (commit_jump_flag_from_rob && store_tail == `INVALID_LSB)) begin
         empty_signal <= `TRUE;
         head <= `ZERO_LSB;
         tail <= `ZERO_LSB;
@@ -107,37 +108,39 @@ always @(posedge clk) begin
             is_committed[i] <= `FALSE;
         end
         ena_to_ex <= `FALSE;
-        store_rob_id_to_rob <= `ZERO_ROB;
-        store_to_rob_lock <= `FALSE;
+        req_rob_id_to_rob <= `ZERO_ROB;
+        req_to_rob_lock <= `FALSE;
     end
     else if (~rdy) begin
     end
-    else if (commit_jump_flag_from_rob == `TRUE) begin
+    else if (commit_jump_flag_from_rob) begin
         tail <= (store_tail == `LSB_SIZE - 1) ? 0 : store_tail + 1;
-        store_rob_id_to_rob <= `ZERO_ROB;
-        store_to_rob_lock <= `FALSE;
+        req_rob_id_to_rob <= `ZERO_ROB;
+        req_to_rob_lock <= `FALSE;
         for (i = 0; i < `LSB_SIZE; i = i+1)
             if (is_committed[i] == `FALSE || openum[i] <= `OPENUM_LHU) 
                 busy[i] <= `FALSE;
     end
     else begin
         // exec
-        if (busy[head] == `TRUE && busy_from_ex == `FALSE && Q1[head] == `ZERO_ROB && Q2[head] == `ZERO_ROB) begin
+        if (busy[head] && busy_from_ex == `FALSE && Q1[head] == `ZERO_ROB && Q2[head] == `ZERO_ROB) begin
             // load
             if (openum[head] <= `OPENUM_LHU) begin
-                busy[head] <= `FALSE;
-                rob_id[head] <= `ZERO_ROB; 
-                is_committed[head] <= `FALSE;
-                ena_to_ex <= `TRUE;
-                openum_to_ex <= openum[head];
-                mem_addr_to_ex <= V1[head] + imm[head];
-                rob_id_to_cdb <= rob_id[head];
-                head <= next_head;
-                empty_signal <= (next_head == tail);
+                if (V1[head] + imm[head] != `RAM_IO_PORT || head_io_rob_id_from_rob == rob_id[head]) begin
+                    busy[head] <= `FALSE;
+                    rob_id[head] <= `ZERO_ROB; 
+                    is_committed[head] <= `FALSE;
+                    ena_to_ex <= `TRUE;
+                    openum_to_ex <= openum[head];
+                    mem_addr_to_ex <= V1[head] + imm[head];
+                    rob_id_to_cdb <= rob_id[head];
+                    head <= next_head;
+                    empty_signal <= (next_head == tail);
+                end
             end
-            // store: commit first
+            // store
             else begin
-                if (is_committed[head] == `TRUE) begin
+                if (is_committed[head]) begin
                     busy[head] <= `FALSE;
                     rob_id[head] <= `ZERO_ROB;
                     is_committed[head] <= `FALSE;
@@ -148,32 +151,32 @@ always @(posedge clk) begin
                     rob_id_to_cdb <= rob_id[head];
                     head <= next_head;
                     empty_signal <= (next_head == tail);
-                    store_to_rob_lock <= `FALSE;
+                    req_to_rob_lock <= `FALSE;
                     if (store_tail == head)
                         store_tail <= `INVALID_LSB;
                 end
                 else begin
                     // notify rob to commit store inst first
                     ena_to_ex <= `FALSE;
-                    if (store_to_rob_lock == `FALSE) begin
-                        store_rob_id_to_rob <= rob_id[head];
-                        store_to_rob_lock <= `TRUE;
+                    if (req_to_rob_lock == `FALSE) begin
+                        req_rob_id_to_rob <= rob_id[head];
+                        req_to_rob_lock <= `TRUE;
                     end
                     else begin
-                        store_rob_id_to_rob <= `ZERO_ROB;
+                        req_rob_id_to_rob <= `ZERO_ROB;
                     end
                 end
             end
         end
         else begin
             ena_to_ex <= `FALSE;
-            store_rob_id_to_rob <= `ZERO_ROB;
+            req_rob_id_to_rob <= `ZERO_ROB;
         end
         
         // update when commit
-        if (commit_flag_from_rob == `TRUE) begin
+        if (commit_flag_from_rob) begin
             for (i = 0; i < `LSB_SIZE; i=i+1) begin
-                if (busy[i] == `TRUE && rob_id[i] == rob_id_from_rob) begin
+                if (busy[i] && rob_id[i] == rob_id_from_rob) begin
                     is_committed[i] <= `TRUE;
                     if (openum[i] >= `OPENUM_SB) begin
                         store_tail <= i;
@@ -186,7 +189,7 @@ always @(posedge clk) begin
         end
 
         // update
-        if (valid_from_rs_cdb == `TRUE) begin
+        if (valid_from_rs_cdb) begin
             for (i = 0; i < `LSB_SIZE; i=i+1) begin
                 if (Q1[i] == rob_id_from_rs_cdb) begin
                     V1[i] <= result_from_rs_cdb;
@@ -206,7 +209,7 @@ always @(posedge clk) begin
                 end
             end
         end
-        if (valid_from_ls_cdb == `TRUE) begin
+        if (valid_from_ls_cdb) begin
             for (i = 0; i < `LSB_SIZE; i=i+1) begin
                 if (Q1[i] == rob_id_from_ls_cdb) begin
                     V1[i] <= result_from_ls_cdb;
@@ -219,7 +222,7 @@ always @(posedge clk) begin
             end
         end
 
-        if (ena_from_dsp == `TRUE) begin
+        if (ena_from_dsp) begin
                 // insert
                 empty_signal <= `FALSE;
                 busy[tail] <= `TRUE;

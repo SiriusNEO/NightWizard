@@ -1,4 +1,4 @@
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
 
 module ReOrderBuffer (
     input wire clk,
@@ -19,6 +19,7 @@ module ReOrderBuffer (
     // from dsp
     input wire ena_from_dsp,
     input wire [`REG_POS_TYPE] rd_from_dsp,
+    input wire is_io_from_dsp,
     // to dsp
     output wire [`ROB_ID_TYPE] rob_id_to_dsp,
 
@@ -38,7 +39,7 @@ module ReOrderBuffer (
     input wire [`DATA_TYPE] result_from_ls_cdb,
     
     // from lsb
-    input wire [`ROB_ID_TYPE] store_rob_id_from_lsb,
+    input wire [`ROB_ID_TYPE] req_rob_id_from_lsb,
 
     // commit
     output reg commit_flag,
@@ -50,7 +51,10 @@ module ReOrderBuffer (
     output reg commit_jump_flag,
     output reg [`ADDR_TYPE] target_pc_to_if,
     // to lsb
-    output reg [`ROB_ID_TYPE] rob_id_to_lsb
+    output reg [`ROB_ID_TYPE] rob_id_to_lsb,
+
+    // io port singal to lsb
+    output wire [`ROB_ID_TYPE] head_io_rob_id_to_lsb
 );
 
 // rob queue
@@ -71,6 +75,7 @@ assign full_to_if = full_signal;
 
 reg [`ROB_SIZE - 1 : 0] busy;
 reg [`ROB_SIZE - 1 : 0] ready;
+reg [`ROB_SIZE - 1 : 0] is_io;
 reg [`REG_POS_TYPE] rd [`ROB_SIZE - 1 : 0];
 reg [`DATA_TYPE] data [`ROB_SIZE - 1 : 0];
 reg [`ADDR_TYPE] target_pc [`ROB_SIZE - 1 : 0];
@@ -101,6 +106,8 @@ assign ready_data2_to_dsp = (Q2_from_dsp == `ZERO_ROB) ?  `ZERO_WORD : data[Q2_f
 
 assign rob_id_to_dsp = tail + 1;
 
+assign head_io_rob_id_to_lsb = (busy[head] && is_io[head]) ? head + 1 : `ZERO_ROB;
+
 always @(posedge clk) begin
     if (rst || commit_jump_flag) begin
         rob_element_cnt <= `ZERO_ROB;
@@ -109,6 +116,7 @@ always @(posedge clk) begin
         for (i = 0; i < `ROB_SIZE; i=i+1) begin
             busy[i] <= `FALSE;
             ready[i] <= `FALSE;
+            is_io[i] <= `FALSE;
             rd[i] <= `ZERO_REG;
             data[i] <= `ZERO_WORD;
             target_pc[i] <= `ZERO_ADDR;
@@ -121,7 +129,7 @@ always @(posedge clk) begin
     end
     else begin
         // commit
-        if (busy[head]  && ready[head]) begin
+        if (busy[head] && ready[head]) begin
             // commit to regfile
             commit_flag <= `TRUE;
             rd_to_reg <= rd[head];
@@ -162,11 +170,11 @@ always @(posedge clk) begin
 `endif
         end
         
-        // store commit directly
-        if (busy[store_rob_id_from_lsb - 1]  && store_rob_id_from_lsb != `ZERO_ROB) begin
-            ready[store_rob_id_from_lsb - 1] <= `TRUE;
+        // commit directly
+        if (busy[req_rob_id_from_lsb - 1]  && req_rob_id_from_lsb != `ZERO_ROB) begin
+            ready[req_rob_id_from_lsb - 1] <= `TRUE;
 `ifdef DEBUG
-            dbg_store_commit_request <= store_rob_id_from_lsb;
+            dbg_store_commit_request <= req_rob_id_from_lsb;
 `endif
         end
 
@@ -182,6 +190,7 @@ always @(posedge clk) begin
             // insert
             rob_element_cnt <= rob_element_cnt + 1;
             busy[tail] <= `TRUE;
+            is_io[tail] <= is_io_from_dsp;
             rd[tail] <= rd_from_dsp;
             data[tail] <= `ZERO_WORD;
             target_pc[tail] <= `ZERO_ADDR;

@@ -7,6 +7,9 @@
 `define FLAG_READ 1'b0
 `define FLAG_WRITE 1'b1
 
+// mem I/O port
+`define RAM_IO_PORT 32'h30000
+
 // constant
 `define FALSE 1'b0
 `define TRUE 1'b1

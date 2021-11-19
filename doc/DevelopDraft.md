@@ -162,6 +162,8 @@ TODO：WNS 降低（实在降不了就先放着），input 处理，uart 处理�
 
 ## 11.19
 
-改 Dispatcher 和 Decoder 结构影响有点大
+改 Dispatcher 和 Decoder 结构影响有点大，暂时还是放着（摆烂）
 
 retiming 之后大概在 -2.9
+
+input 过了（特判 0x30000，等它到 ROB 头顶之后再做），但是 WNS 突增，使得 100MHz 下变得不是很稳定
