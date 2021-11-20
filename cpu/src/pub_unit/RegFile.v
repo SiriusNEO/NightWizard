@@ -21,7 +21,7 @@ module RegFile (
 
     // commit from rob
     input wire commit_flag_from_rob,
-    input wire commit_jump_flag_from_rob,
+    input wire rollback_flag_from_rob,
     input wire [`REG_POS_TYPE] rd_from_rob,
     input wire [`ROB_ID_TYPE] Q_from_rob,
     input wire [`DATA_TYPE] V_from_rob
@@ -64,7 +64,7 @@ always @(*) begin
     shadow_commit_Q_elim = `FALSE;
     shadow_V_from_rob = `ZERO_WORD;
     
-    if (commit_jump_flag_from_rob) begin
+    if (rollback_flag_from_rob) begin
         shadow_jump_flag_from_rob = `TRUE;
     end
     else if (ena_from_dsp == `TRUE && rd_from_dsp != `ZERO_REG) begin
@@ -72,13 +72,20 @@ always @(*) begin
         shadow_Q_from_dsp = Q_from_dsp;
     end
 
-    if (commit_flag_from_rob && rd_from_rob != `ZERO_REG) begin
-        shadow_rd_from_rob = rd_from_rob; 
-        shadow_V_from_rob = V_from_rob;
-        if (ena_from_dsp && (rd_from_rob == rd_from_dsp)) begin
-            if (shadow_Q_from_dsp == Q_from_rob) shadow_commit_Q_elim = `TRUE;
+    if (commit_flag_from_rob) begin
+        if (rd_from_rob != `ZERO_REG) begin
+            shadow_rd_from_rob = rd_from_rob; 
+            shadow_V_from_rob = V_from_rob;
+            if (ena_from_dsp && (rd_from_rob == rd_from_dsp)) begin
+                if (shadow_Q_from_dsp == Q_from_rob) shadow_commit_Q_elim = `TRUE;
+            end
+            else if (Q[rd_from_rob] == Q_from_rob) shadow_commit_Q_elim = `TRUE;
         end
-        else if (Q[rd_from_rob] == Q_from_rob) shadow_commit_Q_elim = `TRUE; 
+`ifdef DEBUG
+        dbg_cmupd_V = V_from_rob;
+        dbg_cmupd_Q = Q_from_rob;
+        dbg_cmupd_rd = rd_from_rob;
+`endif
     end
 end
 

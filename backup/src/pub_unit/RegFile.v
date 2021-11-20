@@ -21,7 +21,7 @@ module RegFile (
 
     // commit from rob
     input wire commit_flag_from_rob,
-    input wire commit_jump_flag_from_rob,
+    input wire rollback_flag_from_rob,
     input wire [`REG_POS_TYPE] rd_from_rob,
     input wire [`ROB_ID_TYPE] Q_from_rob,
     input wire [`DATA_TYPE] V_from_rob
@@ -55,7 +55,7 @@ always @(posedge clk) begin
             V[i] = `ZERO_WORD;
         end
     end
-    else if (commit_jump_flag_from_rob == `TRUE) begin
+    else if (rollback_flag_from_rob == `TRUE) begin
         for (i = 0; i < `REG_SIZE; i=i+1) begin
             Q[i] = `ZERO_ROB;
         end

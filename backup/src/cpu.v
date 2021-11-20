@@ -104,7 +104,7 @@ wire [`ROB_ID_TYPE] Q_dsp_reg;
 
 // commit
 wire commit_flag_bus;
-wire commit_jump_flag_bus;
+wire rollback_flag_bus;
 
 // rob to reg
 wire [`REG_POS_TYPE] rd_rob_reg;
@@ -173,7 +173,7 @@ Fetcher fetcher(
   .inst_from_mc(inst_mc_if),
 
   .commit_flag_from_rob(commit_flag_bus),
-  .commit_jump_flag_from_rob(commit_jump_flag_bus),
+  .rollback_flag_from_rob(rollback_flag_bus),
   .target_pc_from_rob(target_pc_rob_if)
 );
 
@@ -248,7 +248,7 @@ Dispatcher dispatcher(
   .result_from_ls_cdb(result_ls_cdb),
 
   // jump
-  .commit_jump_flag_from_rob(commit_jump_flag_bus)
+  .rollback_flag_from_rob(rollback_flag_bus)
 );
 
 RS rs(
@@ -290,7 +290,7 @@ RS rs(
   .result_from_ls_cdb(result_ls_cdb),
 
   // jump_flag
-  .commit_jump_flag_from_rob(commit_jump_flag_bus)
+  .rollback_flag_from_rob(rollback_flag_bus)
 );
 
 RS_EX rs_ex(
@@ -353,7 +353,7 @@ LSBuffer lsBuffer(
   .rob_id_from_ls_cdb(rob_id_ls_cdb),
   .result_from_ls_cdb(result_ls_cdb),
 
-  .commit_jump_flag_from_rob(commit_jump_flag_bus)
+  .rollback_flag_from_rob(rollback_flag_bus)
 );
 
 LS_EX ls_ex(
@@ -385,7 +385,7 @@ LS_EX ls_ex(
   .result(result_ls_cdb),
 
   //jump
-  .commit_jump_flag_from_rob(commit_jump_flag_bus)
+  .rollback_flag_from_rob(rollback_flag_bus)
 );
 
 ReOrderBuffer reOrderBuffer(
@@ -429,7 +429,7 @@ ReOrderBuffer reOrderBuffer(
   .store_rob_id_from_lsb(store_rob_id_lsb_rob),
 
   // commit
-  .commit_jump_flag(commit_jump_flag_bus),
+  .rollback_flag(rollback_flag_bus),
   // to reg
   .commit_flag(commit_flag_bus),
   .rd_to_reg(rd_rob_reg),
@@ -493,7 +493,7 @@ RegFile regFile(
 
   // commit from rob
   .commit_flag_from_rob(commit_flag_bus),
-  .commit_jump_flag_from_rob(commit_jump_flag_bus),
+  .rollback_flag_from_rob(rollback_flag_bus),
   .rd_from_rob(rd_rob_reg),
   .Q_from_rob(Q_rob_reg),
   .V_from_rob(V_rob_reg)

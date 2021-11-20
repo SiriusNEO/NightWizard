@@ -46,8 +46,10 @@ add:
 - icache
 - branch predictor
 - dcache（maybe）
-- write buffer
 
 do some optimizations and use more elegant design on my CPU
 
 - [x]  icache finished
+- [x]  branch predictor
+
+now：pi 2.2s

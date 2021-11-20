@@ -18,7 +18,11 @@ module ReOrderBuffer (
     // dsp allocate to rob
     // from dsp
     input wire ena_from_dsp,
+    input wire is_jump_from_dsp,
     input wire [`REG_POS_TYPE] rd_from_dsp,
+    input wire predicted_jump_from_dsp,
+    input wire [`ADDR_TYPE] pc_from_dsp,
+    input wire [`ADDR_TYPE] rollback_pc_from_dsp,
     // to dsp
     output wire [`ROB_ID_TYPE] rob_id_to_dsp,
 
@@ -48,10 +52,14 @@ module ReOrderBuffer (
     output reg [`ROB_ID_TYPE] Q_to_reg,
     output reg [`DATA_TYPE] V_to_reg,
     // to if
-    output reg commit_jump_flag,
+    output reg rollback_flag,
     output reg [`ADDR_TYPE] target_pc_to_if,
     // to lsb
     output reg [`ROB_ID_TYPE] rob_id_to_lsb,
+    // to predictor
+    output reg ena_to_pdc,
+    output reg hit_to_pdc,
+    output reg [`ADDR_TYPE] pc_to_pdc,
 
     // io port singal to lsb
     output wire [`ROB_ID_TYPE] head_io_rob_id_to_lsb
@@ -76,10 +84,14 @@ assign full_to_if = full_signal;
 reg [`ROB_SIZE - 1 : 0] busy;
 reg [`ROB_SIZE - 1 : 0] ready;
 reg [`ROB_SIZE - 1 : 0] is_io;
+reg [`ROB_SIZE - 1 : 0] predicted_jump;
+reg [`ADDR_TYPE] pc [`ROB_SIZE - 1 : 0];
 reg [`REG_POS_TYPE] rd [`ROB_SIZE - 1 : 0];
 reg [`DATA_TYPE] data [`ROB_SIZE - 1 : 0];
 reg [`ADDR_TYPE] target_pc [`ROB_SIZE - 1 : 0];
+reg [`ADDR_TYPE] rollback_pc [`ROB_SIZE - 1 : 0];
 reg [`ROB_SIZE - 1 : 0] jump_flag;
+reg [`ROB_SIZE - 1 : 0] is_jump;
 
 // index
 integer i;
@@ -93,7 +105,7 @@ integer dbg_update_from_lsb = -1;
 integer dbg_store_commit_request = -1;
 
 integer dbg_commit = -1;
-integer dbg_commit_jump_flag = -1;
+integer dbg_rollback_flag = -1;
 integer dbg_commit_target_pc = -1;
 
 integer dbg_insert_rd = -1;
@@ -108,8 +120,10 @@ assign rob_id_to_dsp = tail + 1;
 
 assign head_io_rob_id_to_lsb = (busy[head] && is_io[head]) ? head + 1 : `ZERO_ROB;
 
+integer jump_cnt = 0, wrong_cnt = 0;
+
 always @(posedge clk) begin
-    if (rst || commit_jump_flag) begin
+    if (rst || rollback_flag) begin
         rob_element_cnt <= `ZERO_ROB;
         head <= `ZERO_ROB;
         tail <= `ZERO_ROB;
@@ -117,18 +131,27 @@ always @(posedge clk) begin
             busy[i] <= `FALSE;
             ready[i] <= `FALSE;
             is_io[i] <= `FALSE;
+            predicted_jump[i] <= `FALSE;
+            pc[i] <= `FALSE;
             rd[i] <= `ZERO_REG;
             data[i] <= `ZERO_WORD;
             target_pc[i] <= `ZERO_ADDR;
+            rollback_pc[i] <= `ZERO_ADDR;
             jump_flag[i] <= `FALSE;
+            is_jump[i] <= `FALSE;
         end
         commit_flag <= `FALSE;
-        commit_jump_flag <= `FALSE;
+        rollback_flag <= `FALSE;
+        ena_to_pdc <= `FALSE;
     end 
     else if (~rdy) begin
     end
     else begin
         // commit
+        commit_flag <= `FALSE;
+        rollback_flag <= `FALSE;
+        ena_to_pdc <= `FALSE;
+
         if (busy[head] && ready[head]) begin
             // commit to regfile
             commit_flag <= `TRUE;
@@ -136,26 +159,35 @@ always @(posedge clk) begin
             Q_to_reg <= head + 1;
             V_to_reg <= data[head];
             rob_id_to_lsb <= head + 1;
-            if (jump_flag[head] ) begin
-                commit_jump_flag <= `TRUE;
-                target_pc_to_if <= target_pc[head];
-            end
-            else begin
-                commit_jump_flag <= `FALSE;
+            if (is_jump[head]) begin
+                // jump_cnt = jump_cnt + 1;
+                ena_to_pdc <= `TRUE;
+                pc_to_pdc <= pc[head];
+                hit_to_pdc <= jump_flag[head];
+                // miss
+                if (jump_flag[head] ^ predicted_jump[head]) begin
+                    // wrong_cnt = wrong_cnt + 1;
+                    rollback_flag <= `TRUE;
+                    target_pc_to_if <= jump_flag[head] ? target_pc[head] : rollback_pc[head];
+                end
+                /*
+                if (jump_cnt % 40000 == 0) begin
+                    $display("total %d, correct %d, wrong %d", jump_cnt, jump_cnt - wrong_cnt, wrong_cnt);
+                end
+                */
             end
             busy[head] <= `FALSE;
             ready[head] <= `FALSE;
             is_io[head] <= `FALSE;
+            is_jump[head] <= `FALSE;
+            predicted_jump[head] <= `FALSE;
             head <= next_head;
             rob_element_cnt <= rob_element_cnt - 1;
 `ifdef DEBUG
             dbg_commit <= head + 1;
-            dbg_commit_jump_flag <= jump_flag[head];
+            dbg_rollback_flag <= jump_flag[head];
             dbg_commit_target_pc <= target_pc[head];
 `endif
-        end
-        else begin
-            commit_flag <= `FALSE;
         end
 
         // update
@@ -197,10 +229,14 @@ always @(posedge clk) begin
             rob_element_cnt <= rob_element_cnt + 1;
             busy[tail] <= `TRUE;
             is_io[tail] <= `FALSE;
+            predicted_jump[tail] <= predicted_jump_from_dsp;
+            pc[tail] <= pc_from_dsp;
             rd[tail] <= rd_from_dsp;
             data[tail] <= `ZERO_WORD;
             target_pc[tail] <= `ZERO_ADDR;
+            rollback_pc[tail] <= rollback_pc_from_dsp;
             ready[tail] <= `FALSE;
+            is_jump[tail] <= is_jump_from_dsp;
             jump_flag[tail] <= `FALSE;
             tail <= next_tail;
 `ifdef DEBUG

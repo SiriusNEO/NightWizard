@@ -167,3 +167,15 @@ TODO：WNS 降低（实在降不了就先放着），input 处理，uart 处理�
 retiming 之后大概在 -2.9
 
 input 过了（特判 0x30000，等它到 ROB 头顶之后再做），但是 WNS 突增，使得 100MHz 下变得不是很稳定
+
+
+
+## 11.20
+
+今天有几件事：
+
+1. WNS 下降到了 -0.045，几乎没有了
+2. 完成了 branch predictor，性能提高了很多
+3. branch predictor 使我的 WNS 暴增
+
+只能说：乐

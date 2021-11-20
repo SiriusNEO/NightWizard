@@ -47,7 +47,7 @@ module ReOrderBuffer (
     output reg [`ROB_ID_TYPE] Q_to_reg,
     output reg [`DATA_TYPE] V_to_reg,
     // to if
-    output reg commit_jump_flag,
+    output reg rollback_flag,
     output reg [`ADDR_TYPE] target_pc_to_if,
     // to lsb
     output reg [`ROB_ID_TYPE] rob_id_to_lsb
@@ -88,7 +88,7 @@ integer dbg_update_from_lsb = -1;
 integer dbg_store_commit_request = -1;
 
 integer dbg_commit = -1;
-integer dbg_commit_jump_flag = -1;
+integer dbg_rollback_flag = -1;
 integer dbg_commit_target_pc = -1;
 
 integer dbg_insert_rd = -1;
@@ -102,7 +102,7 @@ assign ready_data2_to_dsp = (Q2_from_dsp == `ZERO_ROB) ?  `ZERO_WORD : data[Q2_f
 assign rob_id_to_dsp = tail + 1;
 
 always @(posedge clk) begin
-    if (rst  || commit_jump_flag ) begin
+    if (rst  || rollback_flag ) begin
         rob_element_cnt <= `ZERO_ROB;
         head <= `ZERO_ROB;
         tail <= `ZERO_ROB;
@@ -115,7 +115,7 @@ always @(posedge clk) begin
             jump_flag[i] <= `FALSE;
         end
         commit_flag <= `FALSE;
-        commit_jump_flag <= `FALSE;
+        rollback_flag <= `FALSE;
     end 
     else if (~rdy) begin
     end
@@ -129,11 +129,11 @@ always @(posedge clk) begin
             V_to_reg <= data[head];
             rob_id_to_lsb <= head + 1;
             if (jump_flag[head] ) begin
-                commit_jump_flag <= `TRUE;
+                rollback_flag <= `TRUE;
                 target_pc_to_if <= target_pc[head];
             end
             else begin
-                commit_jump_flag <= `FALSE;
+                rollback_flag <= `FALSE;
             end
             busy[head] <= `FALSE;
             ready[head] <= `FALSE;
@@ -141,7 +141,7 @@ always @(posedge clk) begin
             rob_element_cnt <= rob_element_cnt - 1;
 `ifdef DEBUG
             dbg_commit <= head + 1;
-            dbg_commit_jump_flag <= jump_flag[head];
+            dbg_rollback_flag <= jump_flag[head];
             dbg_commit_target_pc <= target_pc[head];
 `endif
         end

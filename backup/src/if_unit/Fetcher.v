@@ -26,7 +26,7 @@ module Fetcher(
 
     // from rob
     input wire commit_flag_from_rob,
-    input wire commit_jump_flag_from_rob,
+    input wire rollback_flag_from_rob,
     input wire [`ADDR_TYPE] target_pc_from_rob
 );
 
@@ -42,7 +42,7 @@ reg [`ADDR_TYPE] pc, mem_pc;
 
 // predictor
 wire predicted_jump;
-wire [`ADDR_TYPE] predicted_target_pc;
+wire [`ADDR_TYPE] predicted_imm;
 
 // icache
 integer i;
@@ -86,7 +86,7 @@ always @(posedge clk) begin
     end
     else if (~rdy) begin
     end
-    else if (commit_jump_flag_from_rob) begin
+    else if (rollback_flag_from_rob) begin
         ok_flag_to_dsp <= `FALSE;
         pc <= target_pc_from_rob;
         mem_pc <= target_pc_from_rob;
@@ -100,7 +100,7 @@ always @(posedge clk) begin
         if (hit && global_full == `FALSE && (cnt == wait_clock - 1)) begin
             // submit the inst to id
             pc_to_dsp <= pc;
-            //pc <= (predicted_jump) ? predicted_target_pc : pc + `NEXT_PC;
+            //pc <= (predicted_jump) ? predicted_imm : pc + `NEXT_PC;
             pc <= pc + `NEXT_PC;
             inst_to_dsp <= returned_inst;
             ok_flag_to_dsp <= `TRUE;

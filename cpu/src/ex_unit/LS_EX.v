@@ -29,7 +29,7 @@ module LS_EX (
     output reg [`DATA_TYPE] result,
 
     // jump
-    input wire commit_jump_flag_from_rob
+    input wire rollback_flag_from_rob
 );
 
 parameter 
@@ -61,7 +61,7 @@ always @(posedge clk) begin
     else begin
         if (status != STATUS_IDLE) begin
             ena_to_mc <= `FALSE;    
-            if (commit_jump_flag_from_rob && status != STATUS_STORE) begin
+            if (rollback_flag_from_rob && status != STATUS_STORE) begin
                 status <= STATUS_IDLE;
             end
             else begin

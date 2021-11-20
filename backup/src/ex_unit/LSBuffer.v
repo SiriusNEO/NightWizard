@@ -48,7 +48,7 @@ module LSBuffer (
     output reg [`ROB_ID_TYPE] store_rob_id_to_rob,
 
     // jump_flag
-    input wire commit_jump_flag_from_rob
+    input wire rollback_flag_from_rob
 );
 
 reg [`LSB_ID_TYPE] head, tail, store_tail;
@@ -90,7 +90,7 @@ integer dbg_update_index_from_rs = -1;
 integer dbg_update_result = -1;
 
 always @(posedge clk) begin
-    if (rst == `TRUE || (commit_jump_flag_from_rob == `TRUE && store_tail == `INVALID_LSB)) begin
+    if (rst == `TRUE || (rollback_flag_from_rob == `TRUE && store_tail == `INVALID_LSB)) begin
         empty_signal <= `TRUE;
         head <= `ZERO_LSB;
         tail <= `ZERO_LSB;
@@ -112,7 +112,7 @@ always @(posedge clk) begin
     end
     else if (~rdy) begin
     end
-    else if (commit_jump_flag_from_rob == `TRUE) begin
+    else if (rollback_flag_from_rob == `TRUE) begin
         tail <= (store_tail == `LSB_SIZE - 1) ? 0 : store_tail + 1;
         store_rob_id_to_rob <= `ZERO_ROB;
         store_to_rob_lock <= `FALSE;

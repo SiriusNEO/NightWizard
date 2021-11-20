@@ -7,9 +7,11 @@ module Dispatcher(
     input wire rdy,
 
     // from fetcher
+    input wire ok_flag_from_if,
     input wire [`INS_TYPE] inst_from_if, 
     input wire [`ADDR_TYPE] pc_from_if,
-    input wire ok_flag_from_if,
+    input wire predicted_jump_from_if,
+    input wire [`ADDR_TYPE] rollback_pc_from_if,
 
     // query Q1 Q2 ready in rob
     // to rob
@@ -25,6 +27,10 @@ module Dispatcher(
     // to rob
     output reg ena_to_rob,
     output reg [`REG_POS_TYPE] rd_to_rob,
+    output reg is_jump_to_rob,
+    output reg predicted_jump_to_rob,
+    output reg [`ADDR_TYPE] pc_to_rob,
+    output reg [`ADDR_TYPE] rollback_pc_to_rob,
     // from rob
     input wire [`ROB_ID_TYPE] rob_id_from_rob,
 
@@ -75,7 +81,7 @@ module Dispatcher(
     input wire [`DATA_TYPE] result_from_ls_cdb,
 
     // jump
-    input wire commit_jump_flag_from_rob
+    input wire rollback_flag_from_rob
 );
 
 // from decoder
@@ -84,6 +90,7 @@ wire [`REG_POS_TYPE] rd_from_dcd;
 wire [`REG_POS_TYPE] rs1_from_dcd;
 wire [`REG_POS_TYPE] rs2_from_dcd;
 wire [`DATA_TYPE] imm_from_dcd;
+wire is_jump_from_dcd;
 
 Decoder decoder (
     .inst(inst_from_if),
@@ -92,7 +99,8 @@ Decoder decoder (
     .rd(rd_from_dcd),
     .rs1(rs1_from_dcd),
     .rs2(rs2_from_dcd),
-    .imm(imm_from_dcd)
+    .imm(imm_from_dcd),
+    .is_jump(is_jump_from_dcd)
 );
 
 assign Q1_to_rob = Q1_from_reg;
@@ -113,7 +121,7 @@ wire [`DATA_TYPE] real_V2 = (valid_from_rs_cdb && Q2_from_reg == rob_id_from_rs_
 always @(posedge clk) begin
     // should pause
     if (rst == `TRUE || rdy == `FALSE || openum_from_dcd == `OPENUM_NOP || 
-    ok_flag_from_if == `FALSE || commit_jump_flag_from_rob == `TRUE) begin
+    ok_flag_from_if == `FALSE || rollback_flag_from_rob == `TRUE) begin
         ena_to_rob <= `FALSE;
         ena_to_rs <= `FALSE;
         ena_to_lsb <= `FALSE;
@@ -138,6 +146,11 @@ always @(posedge clk) begin
         imm_to_lsb <= imm_from_dcd;
 
         rd_to_rob <= rd_from_dcd;
+        is_jump_to_rob <= is_jump_from_dcd;
+        predicted_jump_to_rob <= predicted_jump_from_if;
+        pc_to_rob <= pc_from_if;
+        rollback_pc_to_rob <= rollback_pc_from_if;
+
         rd_to_reg <= rd_from_dcd;
 
         ena_to_rob <= `FALSE;

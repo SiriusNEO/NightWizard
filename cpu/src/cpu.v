@@ -4,6 +4,7 @@
 `include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
 
 `include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/if_unit/Fetcher.v"
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/if_unit/Predictor.v"
 
 `include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/id_unit/Dispatcher.v"
 
@@ -49,9 +50,17 @@ wire [`INS_TYPE] inst_mc_if;
 wire ena_if_mc, ok_flag_mc_if, drop_flag_if_mc;
 
 // fetcher and dispatcher
+wire ok_flag_if_dsp;
 wire [`INS_TYPE] inst_if_dsp;
 wire [`ADDR_TYPE] pc_if_dsp;
-wire ok_flag_if_dsp;
+wire [`ADDR_TYPE] rollback_pc_if_dsp;
+wire predicted_jump_if_dsp;
+
+// fetcher and predictor
+wire [`ADDR_TYPE] query_pc_if_pdc;
+wire [`INS_TYPE] query_inst_if_pdc;
+wire predicted_jump_pdc_if;
+wire [`ADDR_TYPE] predicted_imm_pdc_if;
 
 // full signal to fetcher
 wire full_rs, full_lsb, full_rob;
@@ -80,7 +89,13 @@ wire [`ROB_ID_TYPE] rob_id_dsp_lsb;
 
 // dispatcher and rob
 wire ena_dsp_rob;
+
 wire [`REG_POS_TYPE] rd_dsp_rob;
+wire is_jump_dsp_rob;
+wire predicted_jump_dsp_rob;
+wire [`ADDR_TYPE] pc_dsp_rob;
+wire [`ADDR_TYPE] rollback_pc_dsp_rob;
+
 wire [`ROB_ID_TYPE] rob_id_rob_dsp;
 
 wire [`ROB_ID_TYPE] Q1_dsp_rob;
@@ -104,7 +119,7 @@ wire [`ROB_ID_TYPE] Q_dsp_reg;
 
 // commit
 wire commit_flag_bus;
-wire commit_jump_flag_bus;
+wire rollback_flag_bus;
 
 // rob to reg
 wire [`REG_POS_TYPE] rd_rob_reg;
@@ -119,6 +134,11 @@ wire [`ROB_ID_TYPE] rob_id_rob_lsb;
 wire [`ROB_ID_TYPE] req_rob_id_lsb_rob;
 wire [`ROB_ID_TYPE] io_rob_id_lsb_rob;
 wire [`ROB_ID_TYPE] head_io_rob_id_rob_lsb;
+
+// rob and predictor
+wire ena_rob_pdc;
+wire hit_rob_pdc;
+wire [`ADDR_TYPE] pc_rob_pdc;
 
 // rs and rs_ex
 wire [`OPENUM_TYPE] openum_rs_ex;
@@ -154,27 +174,58 @@ wire valid_ls_cdb;
 wire [`ROB_ID_TYPE] rob_id_ls_cdb;
 wire [`DATA_TYPE] result_ls_cdb;
 
-Fetcher fetcher(
-  .clk(clk_in),
-  .rst(rst_in),
+Fetcher fetcher (
+  .clk(clk_in), 
+  .rst(rst_in), 
   .rdy(rdy_in),
 
+  // to decoder
   .inst_to_dsp(inst_if_dsp),
 
+  // full signal
   .global_full(global_full),
 
-  .pc_to_dsp(pc_if_dsp),
+  // with pdc
+  .query_pc_to_pdc(query_pc_if_pdc),
+  .query_inst_to_pdc(query_inst_if_pdc),
+  .predicted_jump_from_pdc(predicted_jump_pdc_if),
+  .predicted_imm_from_pdc(predicted_imm_pdc_if),
+
+  // to dsp
+  .pc_to_dsp(pc_if_dsp), 
+  .rollback_pc_to_dsp(rollback_pc_if_dsp),
+  .predicted_jump_to_dsp(predicted_jump_if_dsp),
   .ok_flag_to_dsp(ok_flag_if_dsp),
 
-  .pc_to_mc(pc_if_mc),
-  .ena_to_mc(ena_if_mc),
+  // port with memctrl
+  // to memctrl
+  .pc_to_mc(pc_if_mc), 
+  .ena_to_mc(ena_if_mc), 
   .drop_flag_to_mc(drop_flag_if_mc),
-
-  .ok_flag_from_mc(ok_flag_mc_if),
+  // from memctrl
+  .ok_flag_from_mc(ok_flag_mc_if), 
   .inst_from_mc(inst_mc_if),
 
-  .commit_jump_flag_from_rob(commit_jump_flag_bus),
+  // from rob
+  .rollback_flag_from_rob(rollback_flag_bus), 
   .target_pc_from_rob(target_pc_rob_if)
+);
+
+Predictor predictor (
+  .clk(clk_in), 
+  .rst(rst_in),
+
+  // query
+  .query_pc(query_pc_if_pdc),
+  .query_inst(query_inst_if_pdc),
+
+  .predicted_jump(predicted_jump_pdc_if),
+  .predicted_imm(predicted_imm_pdc_if),
+
+  // update
+  .ena_from_rob(ena_rob_pdc), 
+  .hit_from_rob(hit_rob_pdc),
+  .pc_from_rob(pc_rob_pdc)
 );
 
 Dispatcher dispatcher(
@@ -185,6 +236,8 @@ Dispatcher dispatcher(
   .inst_from_if(inst_if_dsp),
   .ok_flag_from_if(ok_flag_if_dsp),
   .pc_from_if(pc_if_dsp),
+  .rollback_pc_from_if(rollback_pc_if_dsp),
+  .predicted_jump_from_if(predicted_jump_if_dsp),
 
   // query Q1 Q2 ready in rob
   // to rob
@@ -199,6 +252,10 @@ Dispatcher dispatcher(
   // to rob
   .ena_to_rob(ena_dsp_rob),
   .rd_to_rob(rd_dsp_rob),
+  .is_jump_to_rob(is_jump_dsp_rob),
+  .predicted_jump_to_rob(predicted_jump_dsp_rob),
+  .pc_to_rob(pc_dsp_rob),
+  .rollback_pc_to_rob(rollback_pc_dsp_rob),
   // from rob
   .rob_id_from_rob(rob_id_rob_dsp),
 
@@ -248,7 +305,7 @@ Dispatcher dispatcher(
   .result_from_ls_cdb(result_ls_cdb),
 
   // jump
-  .commit_jump_flag_from_rob(commit_jump_flag_bus)
+  .rollback_flag_from_rob(rollback_flag_bus)
 );
 
 RS rs(
@@ -290,7 +347,7 @@ RS rs(
   .result_from_ls_cdb(result_ls_cdb),
 
   // jump_flag
-  .commit_jump_flag_from_rob(commit_jump_flag_bus)
+  .rollback_flag_from_rob(rollback_flag_bus)
 );
 
 RS_EX rs_ex(
@@ -355,7 +412,7 @@ LSBuffer lsBuffer(
   .rob_id_from_ls_cdb(rob_id_ls_cdb),
   .result_from_ls_cdb(result_ls_cdb),
 
-  .commit_jump_flag_from_rob(commit_jump_flag_bus)
+  .rollback_flag_from_rob(rollback_flag_bus)
 );
 
 LS_EX ls_ex(
@@ -387,7 +444,7 @@ LS_EX ls_ex(
   .result(result_ls_cdb),
 
   //jump
-  .commit_jump_flag_from_rob(commit_jump_flag_bus)
+  .rollback_flag_from_rob(rollback_flag_bus)
 );
 
 ReOrderBuffer reOrderBuffer(
@@ -408,7 +465,11 @@ ReOrderBuffer reOrderBuffer(
   // dsp allocate to rob
   // from dsp
   .ena_from_dsp(ena_dsp_rob),
+  .is_jump_from_dsp(is_jump_dsp_rob),
   .rd_from_dsp(rd_dsp_rob),
+  .predicted_jump_from_dsp(predicted_jump_dsp_rob),
+  .pc_from_dsp(pc_dsp_rob),
+  .rollback_pc_from_dsp(rollback_pc_dsp_rob),
   // to dsp
   .rob_id_to_dsp(rob_id_rob_dsp),
 
@@ -432,7 +493,7 @@ ReOrderBuffer reOrderBuffer(
   .io_rob_id_from_lsb(io_rob_id_lsb_rob),
 
   // commit
-  .commit_jump_flag(commit_jump_flag_bus),
+  .rollback_flag(rollback_flag_bus),
   // to reg
   .commit_flag(commit_flag_bus),
   .rd_to_reg(rd_rob_reg),
@@ -442,6 +503,10 @@ ReOrderBuffer reOrderBuffer(
   .target_pc_to_if(target_pc_rob_if),
   // to lsb
   .rob_id_to_lsb(rob_id_rob_lsb),
+  // to predictor
+  .ena_to_pdc(ena_rob_pdc),
+  .pc_to_pdc(pc_rob_pdc),
+  .hit_to_pdc(hit_rob_pdc),
   
   // io port singal to lsb
   .head_io_rob_id_to_lsb(head_io_rob_id_rob_lsb)
@@ -499,7 +564,7 @@ RegFile regFile(
 
   // commit from rob
   .commit_flag_from_rob(commit_flag_bus),
-  .commit_jump_flag_from_rob(commit_jump_flag_bus),
+  .rollback_flag_from_rob(rollback_flag_bus),
   .rd_from_rob(rd_rob_reg),
   .Q_from_rob(Q_rob_reg),
   .V_from_rob(V_rob_reg)

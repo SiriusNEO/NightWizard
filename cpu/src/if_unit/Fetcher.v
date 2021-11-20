@@ -11,8 +11,16 @@ module Fetcher(
     // full signal
     input wire global_full,
     
+    // with pdc
+    output wire [`ADDR_TYPE] query_pc_to_pdc,
+    output wire [`INS_TYPE] query_inst_to_pdc,
+    input wire predicted_jump_from_pdc,
+    input wire [`ADDR_TYPE] predicted_imm_from_pdc,
+
     // to dsp
     output reg [`ADDR_TYPE] pc_to_dsp,
+    output reg [`ADDR_TYPE] rollback_pc_to_dsp,
+    output reg predicted_jump_to_dsp,
     output reg ok_flag_to_dsp,
 
     // port with memctrl
@@ -25,7 +33,7 @@ module Fetcher(
     input wire [`INS_TYPE] inst_from_mc,
 
     // from rob
-    input wire commit_jump_flag_from_rob,
+    input wire rollback_flag_from_rob,
     input wire [`ADDR_TYPE] target_pc_from_rob
 );
 
@@ -39,15 +47,10 @@ reg [`STATUS_TYPE] status;
 // pc reg
 reg [`ADDR_TYPE] pc, mem_pc;
 
-// predictor
-wire predicted_jump;
-wire [`ADDR_TYPE] predicted_target_pc;
-
 // index
 integer i;
 
 // direct mapped icache
-
 `define ICACHE_SIZE 256
 `define INDEX_RANGE 9:2
 `define TAG_RANGE 31:10
@@ -58,6 +61,10 @@ reg [`INS_TYPE] data_store [`ICACHE_SIZE - 1 : 0];
 
 wire hit = valid[pc[`INDEX_RANGE]] && (tag_store[pc[`INDEX_RANGE]] == pc[`TAG_RANGE]);
 wire [`INS_TYPE] returned_inst = (hit) ? data_store[pc[`INDEX_RANGE]] : `ZERO_WORD;
+
+// predictor port
+assign query_pc_to_pdc = pc;
+assign query_inst_to_pdc = returned_inst;
 
 // stall for debug
 integer cnt = 0;
@@ -72,7 +79,7 @@ always @(posedge clk) begin
         status <= STATUS_IDLE;
         // ena        
         ena_to_mc <= `FALSE;
-        // to dcd & dsp
+        // to dsp
         pc_to_dsp <= `ZERO_ADDR;
         ok_flag_to_dsp <= `FALSE;
         inst_to_dsp <= `ZERO_WORD;
@@ -88,7 +95,7 @@ always @(posedge clk) begin
     end
     else if (~rdy) begin
     end
-    else if (commit_jump_flag_from_rob) begin
+    else if (rollback_flag_from_rob) begin
         ok_flag_to_dsp <= `FALSE;
         pc <= target_pc_from_rob;
         mem_pc <= target_pc_from_rob;
@@ -102,8 +109,11 @@ always @(posedge clk) begin
         if (hit && global_full == `FALSE) begin
             // submit the inst to id
             pc_to_dsp <= pc;
-            //pc <= (predicted_jump) ? predicted_target_pc : pc + `NEXT_PC;
-            pc <= pc + `NEXT_PC;
+            predicted_jump_to_dsp <= predicted_jump_from_pdc;
+            pc <= pc + (predicted_jump_from_pdc ? predicted_imm_from_pdc : `NEXT_PC);
+            // for miss and not jump rollback
+            rollback_pc_to_dsp <= pc + `NEXT_PC;
+            // pc <= pc + `NEXT_PC;
             inst_to_dsp <= returned_inst;
             ok_flag_to_dsp <= `TRUE;
         end
@@ -125,7 +135,7 @@ always @(posedge clk) begin
             // memctrl ok
             if (ok_flag_from_mc) begin
                 // put into icache
-                mem_pc <= mem_pc + `NEXT_PC;
+                mem_pc <= pc;
                 status <= STATUS_IDLE;
                 valid[mem_pc[`INDEX_RANGE]] <= `TRUE;
                 tag_store[mem_pc[`INDEX_RANGE]] <= mem_pc[`TAG_RANGE];

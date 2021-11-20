@@ -3,6 +3,7 @@
 module Decoder(
     input wire [`INS_TYPE] inst, 
     
+    output reg is_jump,
     output reg [`OPENUM_TYPE] openum,
     output reg [`REG_POS_TYPE] rd,
     output reg [`REG_POS_TYPE] rs1,
@@ -16,6 +17,7 @@ always @(*) begin
     rs1 = inst[`RS1_RANGE];
     rs2 = inst[`RS2_RANGE];
     imm = `ZERO_WORD;
+    is_jump = `FALSE;
     
     case (inst[`OPCODE_RANGE])
         `OPCODE_LUI, `OPCODE_AUIPC: begin // U-Type
@@ -29,12 +31,16 @@ always @(*) begin
         `OPCODE_JAL: begin // J-Type
             imm = {{12{inst[31]}}, inst[19:12], inst[20], inst[30:21], 1'b0};
             openum = `OPENUM_JAL;
+            is_jump = `TRUE;
         end
 
         `OPCODE_JALR, `OPCODE_L, `OPCODE_ARITHI: begin // I-Type
             imm = {{21{inst[31]}}, inst[30:20]};
             case (inst[`OPCODE_RANGE])
-                `OPCODE_JALR: openum = `OPENUM_JALR;
+                `OPCODE_JALR: begin
+                    openum = `OPENUM_JALR;
+                    is_jump = `TRUE;
+                end
                 `OPCODE_L: begin
                     case (inst[`FUNC3_RANGE])
                         `FUNC3_LB: openum = `OPENUM_LB;
@@ -70,6 +76,7 @@ always @(*) begin
         `OPCODE_BR: begin // B-Type
             rd = `ZERO_REG; // no rd
             imm = {{20{inst[31]}}, inst[7:7], inst[30:25], inst[11:8], 1'b0};
+            is_jump = `TRUE;
             case (inst[`FUNC3_RANGE])
                 `FUNC3_BEQ:  openum = `OPENUM_BEQ;
                 `FUNC3_BNE:  openum = `OPENUM_BNE;

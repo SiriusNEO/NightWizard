@@ -40,7 +40,7 @@ module RS (
     input wire [`DATA_TYPE] result_from_ls_cdb,
 
     // jump_flag
-    input wire commit_jump_flag_from_rob
+    input wire rollback_flag_from_rob
 );
 
 // rs store
@@ -118,7 +118,7 @@ assign exec_index = (busy[0] && Q1[0] == `ZERO_ROB && Q2[0] == `ZERO_ROB) ? 0 :
                     `INVALID_RS)))))))))))))));               
 
 always @(posedge clk) begin
-    if (rst || commit_jump_flag_from_rob) begin
+    if (rst || rollback_flag_from_rob) begin
         for (i = 0; i < `RS_SIZE; i=i+1) begin
             busy[i] <= `FALSE;
             pc[i] <= `ZERO_ADDR;

@@ -75,7 +75,7 @@ module Dispatcher(
     input wire [`DATA_TYPE] result_from_ls_cdb,
 
     // jump
-    input wire commit_jump_flag_from_rob
+    input wire rollback_flag_from_rob
 );
 
 // with decoder
@@ -132,7 +132,7 @@ assign imm_to_lsb = imm_from_dcd;
 always @(posedge clk) begin 
     // should pause
     if (rst == `TRUE || rdy == `FALSE || inst_from_if == `ZERO_WORD || 
-    ok_flag_from_if == `FALSE || commit_jump_flag_from_rob == `TRUE) begin
+    ok_flag_from_if == `FALSE || rollback_flag_from_rob == `TRUE) begin
         ena_to_rob <= `FALSE;
         ena_to_rs <= `FALSE;
         ena_to_lsb <= `FALSE;
