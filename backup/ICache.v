@@ -1,8 +1,11 @@
 `include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
 
-module ICache(
-    input wire rst,
+// para
+`define ICACHE_SIZE 512
+`define ICACHE_BITLEN 9
+`define INDEX_RANGE 10:2
 
+module ICache(
     // query
     input wire [`ADDR_TYPE] query_pc,
     output wire hit,
@@ -14,35 +17,28 @@ module ICache(
     input wire [`INS_TYPE] inst_from_if
 );
 
-// para
-localparam ICACHE_SIZE = 256;
-`define INDEX_RANGE 9:2
-`define TAG_RANGE 31:10
+// use total 32bit as the tag
 
-// direct mapped icache
-reg valid [ICACHE_SIZE - 1 : 0];
-reg [`TAG_RANGE] tag_store [ICACHE_SIZE - 1 : 0];
-reg [`INS_TYPE] data_store [ICACHE_SIZE - 1 : 0];
+reg valid [`ICACHE_SIZE - 1 : 0];
+reg [`ADDR_TYPE] tag_store [`ICACHE_SIZE - 1 : 0];
+reg [`INS_TYPE] data_store [`ICACHE_SIZE - 1 : 0];
 
-assign hit = valid[query_pc[`INDEX_RANGE]] && (tag_store[query_pc[`INDEX_RANGE]] == query_pc[`TAG_RANGE]);
-assign returned_inst = (hit) ? data_store[query_pc[`INDEX_RANGE]] : `ZERO_WORD;
+wire [`ICACHE_BITLEN - 1 : 0] index = query_pc[`INDEX_RANGE];
+assign hit = (valid[index] == `TRUE) && (tag_store[index] == query_pc);
+assign returned_inst = (hit) ? data_store[index] : `ZERO_WORD;
 
-// index
-integer i;
+// debug
 
-always @(negedge rst or posedge ena_from_if) begin
-    if (~ena_from_if) begin
-        for (i = 0; i < ICACHE_SIZE; i=i+1) begin
-            valid[i] <= `FALSE;
-            tag_store[i] <= `ZERO_ADDR;
-            data_store[i] <= `ZERO_WORD;
-        end
-    end
-    else begin
-        valid[addr_from_if[`INDEX_RANGE]] <= `TRUE;
-        tag_store[addr_from_if[`INDEX_RANGE]] <= addr_from_if[`TAG_RANGE];
-        data_store[addr_from_if[`INDEX_RANGE]] <= inst_from_if;
-    end
+reg [`ADDR_TYPE] dbg_tag_store;
+reg [`INS_TYPE] dbg_data_store;
+
+always @(posedge ena_from_if) begin
+    valid[addr_from_if[`INDEX_RANGE]] = `TRUE;
+    tag_store[addr_from_if[`INDEX_RANGE]] = addr_from_if;
+    data_store[addr_from_if[`INDEX_RANGE]] = inst_from_if;
+
+    dbg_tag_store = tag_store[addr_from_if[`INDEX_RANGE]];
+    dbg_data_store = data_store[addr_from_if[`INDEX_RANGE]];
 end
 
 endmodule

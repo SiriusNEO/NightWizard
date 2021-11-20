@@ -43,9 +43,10 @@ reg [`ADDR_TYPE] pc, mem_pc;
 wire predicted_jump;
 wire [`ADDR_TYPE] predicted_target_pc;
 
-// icache
-
+// index
 integer i;
+
+// direct mapped icache
 
 `define ICACHE_SIZE 256
 `define INDEX_RANGE 9:2
