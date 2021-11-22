@@ -135,7 +135,7 @@ always @(posedge clk) begin
             // memctrl ok
             if (ok_flag_from_mc) begin
                 // put into icache
-                mem_pc <= pc;
+                mem_pc <= ((mem_pc == pc) ? mem_pc + `NEXT_PC : pc);
                 status <= STATUS_IDLE;
                 valid[mem_pc[`INDEX_RANGE]] <= `TRUE;
                 tag_store[mem_pc[`INDEX_RANGE]] <= mem_pc[`TAG_RANGE];

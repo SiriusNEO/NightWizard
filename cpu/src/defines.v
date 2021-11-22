@@ -25,6 +25,8 @@
 `define INVALID_LSB 5'h10
 `define ZERO_ROB 4'h0
 
+`define FULL_WARNING 6
+
 // vec type
 `define STATUS_TYPE 2:0
 `define INT_TYPE 31:0

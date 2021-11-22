@@ -28,6 +28,7 @@ module Dispatcher(
     output reg ena_to_rob,
     output reg [`REG_POS_TYPE] rd_to_rob,
     output reg is_jump_to_rob,
+    output reg is_store_to_rob,
     output reg predicted_jump_to_rob,
     output reg [`ADDR_TYPE] pc_to_rob,
     output reg [`ADDR_TYPE] rollback_pc_to_rob,
@@ -90,7 +91,7 @@ wire [`REG_POS_TYPE] rd_from_dcd;
 wire [`REG_POS_TYPE] rs1_from_dcd;
 wire [`REG_POS_TYPE] rs2_from_dcd;
 wire [`DATA_TYPE] imm_from_dcd;
-wire is_jump_from_dcd;
+wire is_jump_from_dcd, is_store_from_dcd;
 
 Decoder decoder (
     .inst(inst_from_if),
@@ -100,7 +101,8 @@ Decoder decoder (
     .rs1(rs1_from_dcd),
     .rs2(rs2_from_dcd),
     .imm(imm_from_dcd),
-    .is_jump(is_jump_from_dcd)
+    .is_jump(is_jump_from_dcd),
+    .is_store(is_store_from_dcd)
 );
 
 assign Q1_to_rob = Q1_from_reg;
@@ -147,6 +149,7 @@ always @(posedge clk) begin
 
         rd_to_rob <= rd_from_dcd;
         is_jump_to_rob <= is_jump_from_dcd;
+        is_store_to_rob <= is_store_from_dcd;
         predicted_jump_to_rob <= predicted_jump_from_if;
         pc_to_rob <= pc_from_if;
         rollback_pc_to_rob <= rollback_pc_from_if;

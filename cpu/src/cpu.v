@@ -92,6 +92,7 @@ wire ena_dsp_rob;
 
 wire [`REG_POS_TYPE] rd_dsp_rob;
 wire is_jump_dsp_rob;
+wire is_store_dsp_rob;
 wire predicted_jump_dsp_rob;
 wire [`ADDR_TYPE] pc_dsp_rob;
 wire [`ADDR_TYPE] rollback_pc_dsp_rob;
@@ -253,6 +254,7 @@ Dispatcher dispatcher(
   .ena_to_rob(ena_dsp_rob),
   .rd_to_rob(rd_dsp_rob),
   .is_jump_to_rob(is_jump_dsp_rob),
+  .is_store_to_rob(is_store_dsp_rob),
   .predicted_jump_to_rob(predicted_jump_dsp_rob),
   .pc_to_rob(pc_dsp_rob),
   .rollback_pc_to_rob(rollback_pc_dsp_rob),
@@ -393,7 +395,6 @@ LSBuffer lsBuffer(
   .busy_from_ex(busy_ex_ls),
 
   // to rob
-  .req_rob_id_to_rob(req_rob_id_lsb_rob),
   .io_rob_id_to_rob(io_rob_id_lsb_rob),
 
   // update when commit
@@ -466,6 +467,7 @@ ReOrderBuffer reOrderBuffer(
   // from dsp
   .ena_from_dsp(ena_dsp_rob),
   .is_jump_from_dsp(is_jump_dsp_rob),
+  .is_store_from_dsp(is_store_dsp_rob),
   .rd_from_dsp(rd_dsp_rob),
   .predicted_jump_from_dsp(predicted_jump_dsp_rob),
   .pc_from_dsp(pc_dsp_rob),
@@ -489,7 +491,6 @@ ReOrderBuffer reOrderBuffer(
   .result_from_ls_cdb(result_ls_cdb),
 
   // from lsb
-  .req_rob_id_from_lsb(req_rob_id_lsb_rob),
   .io_rob_id_from_lsb(io_rob_id_lsb_rob),
 
   // commit

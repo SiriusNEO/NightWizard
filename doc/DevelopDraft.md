@@ -179,3 +179,11 @@ input 过了（特判 0x30000，等它到 ROB 头顶之后再做），但是 WNS
 3. branch predictor 使我的 WNS 暴增
 
 只能说：乐
+
+计划：优化速度？
+
+
+
+## 11.21
+
+发行版本，暂时 archive

@@ -62,7 +62,7 @@ wire [`RS_ID_TYPE] free_index;
 wire [`RS_ID_TYPE] exec_index;
 
 // signal
-wire full_signal = (free_index == -1);
+wire full_signal = (free_index == `INVALID_RS);
 
 assign full_to_if = full_signal;
 

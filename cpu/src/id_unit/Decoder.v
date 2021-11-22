@@ -4,6 +4,7 @@ module Decoder(
     input wire [`INS_TYPE] inst, 
     
     output reg is_jump,
+    output reg is_store,
     output reg [`OPENUM_TYPE] openum,
     output reg [`REG_POS_TYPE] rd,
     output reg [`REG_POS_TYPE] rs1,
@@ -18,6 +19,7 @@ always @(*) begin
     rs2 = inst[`RS2_RANGE];
     imm = `ZERO_WORD;
     is_jump = `FALSE;
+    is_store = `FALSE;
     
     case (inst[`OPCODE_RANGE])
         `OPCODE_LUI, `OPCODE_AUIPC: begin // U-Type
@@ -90,6 +92,7 @@ always @(*) begin
         `OPCODE_S: begin // S-Type
             rd = `ZERO_REG; // no rd
             imm = {{21{inst[31]}}, inst[30:25], inst[`RD_RANGE]};
+            is_store = `TRUE;
             case (inst[`FUNC3_RANGE])
                 `FUNC3_SB:  openum = `OPENUM_SB;
                 `FUNC3_SH:  openum = `OPENUM_SH;

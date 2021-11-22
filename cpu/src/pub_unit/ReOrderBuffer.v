@@ -19,6 +19,7 @@ module ReOrderBuffer (
     // from dsp
     input wire ena_from_dsp,
     input wire is_jump_from_dsp,
+    input wire is_store_from_dsp,
     input wire [`REG_POS_TYPE] rd_from_dsp,
     input wire predicted_jump_from_dsp,
     input wire [`ADDR_TYPE] pc_from_dsp,
@@ -42,7 +43,6 @@ module ReOrderBuffer (
     input wire [`DATA_TYPE] result_from_ls_cdb,
     
     // from lsb
-    input wire [`ROB_ID_TYPE] req_rob_id_from_lsb,
     input wire [`ROB_ID_TYPE] io_rob_id_from_lsb,
 
     // commit
@@ -76,11 +76,6 @@ reg [`ROB_POS_TYPE] head, tail;
 wire [`ROB_POS_TYPE] next_head = (head == `ROB_SIZE - 1) ? 0 : head + 1,
                      next_tail = (tail == `ROB_SIZE - 1) ? 0 : tail + 1;
 
-reg [`ROB_POS_TYPE] rob_element_cnt;
-wire full_signal = (rob_element_cnt >= `ROB_SIZE - 4);
-
-assign full_to_if = full_signal;
-
 reg [`ROB_SIZE - 1 : 0] busy;
 reg [`ROB_SIZE - 1 : 0] ready;
 reg [`ROB_SIZE - 1 : 0] is_io;
@@ -92,6 +87,14 @@ reg [`ADDR_TYPE] target_pc [`ROB_SIZE - 1 : 0];
 reg [`ADDR_TYPE] rollback_pc [`ROB_SIZE - 1 : 0];
 reg [`ROB_SIZE - 1 : 0] jump_flag;
 reg [`ROB_SIZE - 1 : 0] is_jump;
+reg [`ROB_SIZE - 1 : 0] is_store;
+
+reg [`ROB_POS_TYPE] rob_element_cnt;
+wire full_signal = (rob_element_cnt >= `ROB_SIZE - `FULL_WARNING);
+wire [`INT_TYPE] insert_cnt = (ena_from_dsp ? 1 : 0); 
+wire [`INT_TYPE] commit_cnt = ((busy[head] && (ready[head] || is_store[head])) ? -1 : 0);
+
+assign full_to_if = full_signal;
 
 // index
 integer i;
@@ -139,6 +142,7 @@ always @(posedge clk) begin
             rollback_pc[i] <= `ZERO_ADDR;
             jump_flag[i] <= `FALSE;
             is_jump[i] <= `FALSE;
+            is_store[i] <= `FALSE;
         end
         commit_flag <= `FALSE;
         rollback_flag <= `FALSE;
@@ -151,8 +155,9 @@ always @(posedge clk) begin
         commit_flag <= `FALSE;
         rollback_flag <= `FALSE;
         ena_to_pdc <= `FALSE;
+        rob_element_cnt <= rob_element_cnt + insert_cnt + commit_cnt;
 
-        if (busy[head] && ready[head]) begin
+        if (busy[head] && (ready[head] || is_store[head])) begin
             // commit to regfile
             commit_flag <= `TRUE;
             rd_to_reg <= rd[head];
@@ -171,7 +176,7 @@ always @(posedge clk) begin
                     target_pc_to_if <= jump_flag[head] ? target_pc[head] : rollback_pc[head];
                 end
                 /*
-                if (jump_cnt % 40000 == 0) begin
+                if (jump_cnt % 1000 == 0) begin
                     $display("total %d, correct %d, wrong %d", jump_cnt, jump_cnt - wrong_cnt, wrong_cnt);
                 end
                 */
@@ -180,9 +185,9 @@ always @(posedge clk) begin
             ready[head] <= `FALSE;
             is_io[head] <= `FALSE;
             is_jump[head] <= `FALSE;
+            is_store[head] <= `FALSE;
             predicted_jump[head] <= `FALSE;
             head <= next_head;
-            rob_element_cnt <= rob_element_cnt - 1;
 `ifdef DEBUG
             dbg_commit <= head + 1;
             dbg_rollback_flag <= jump_flag[head];
@@ -210,14 +215,6 @@ always @(posedge clk) begin
             dbg_update_from_lsb <= rob_id_from_ls_cdb;
 `endif
         end
-        
-        // commit directly
-        if (req_rob_id_from_lsb != `ZERO_ROB && busy[req_rob_id_from_lsb - 1]) begin
-            ready[req_rob_id_from_lsb - 1] <= `TRUE;
-`ifdef DEBUG
-            dbg_store_commit_request <= req_rob_id_from_lsb;
-`endif
-        end
 
         // commit directly
         if (io_rob_id_from_lsb != `ZERO_ROB && busy[io_rob_id_from_lsb - 1]) begin
@@ -226,7 +223,6 @@ always @(posedge clk) begin
 
         if (ena_from_dsp) begin
             // insert
-            rob_element_cnt <= rob_element_cnt + 1;
             busy[tail] <= `TRUE;
             is_io[tail] <= `FALSE;
             predicted_jump[tail] <= predicted_jump_from_dsp;
@@ -237,6 +233,7 @@ always @(posedge clk) begin
             rollback_pc[tail] <= rollback_pc_from_dsp;
             ready[tail] <= `FALSE;
             is_jump[tail] <= is_jump_from_dsp;
+            is_store[tail] <= is_store_from_dsp;
             jump_flag[tail] <= `FALSE;
             tail <= next_tail;
 `ifdef DEBUG
