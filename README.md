@@ -3,8 +3,9 @@
 # NightWizard
 
 <div align="center">
-	<img src="doc/assets/gengar3.jpg" width="400px">
+	<img src="doc/assets/gengar3.jpg" width="250px">
 </div>
+
 CS2951-1 Architecture Assignment, A Verilog HDL implemented RISC-V CPU.
 
 Running on Basys3 FPGA Board (XC7A35T-ICPG236C) with all testcases passed.
