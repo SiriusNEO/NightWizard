@@ -9,7 +9,7 @@ CS2951-1 Architecture Assignment, A Verilog HDL implemented RISC-V CPU.
 
 Running on Basys3 FPGA Board (XC7A35T-ICPG236C) with all testcases passed.
 
-![](https://img.shields.io/badge/language-Verilog-violet)![](https://img.shields.io/badge/simulation-passed-success)![](https://img.shields.io/badge/FPGA-passed-success)
+![](https://img.shields.io/badge/language-Verilog-violet)  ![](https://img.shields.io/badge/simulation-passed-success)  ![](https://img.shields.io/badge/FPGA-passed-success)
 
 (Archived temporarily because I have to deal with my Compiler)
 
