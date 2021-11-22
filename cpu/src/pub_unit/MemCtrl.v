@@ -49,6 +49,9 @@ reg [2: 0] buffered_size;
 reg [`ADDR_TYPE] buffered_addr;
 reg [`ADDR_TYPE] buffered_write_data;
 
+// deal with uart-write
+reg uart_write_is_io, uart_write_lock;
+
 // working status para
 reg [`STATUS_TYPE] status;
 reg [`INT_TYPE] ram_access_counter, ram_access_stop;
@@ -87,14 +90,17 @@ always @(posedge clk) begin
         buffered_ls_valid <= `FALSE;
         inst_to_if <= `ZERO_ADDR;
         load_data_to_lsex <= `ZERO_WORD;
+        uart_write_is_io <= `FALSE;
+        uart_write_lock <= `FALSE;
     end
     else if (~rdy) begin
-    end
-    else if (uart_full_from_ram) begin
     end
     else begin
         ok_flag_to_if <= `FALSE;
         ok_flag_to_lsex <= `FALSE;
+        
+        addr_to_ram <= `ZERO_ADDR;
+        wr_flag_to_ram <= `FLAG_READ;
 
         if (ena_shadow_status) status <= STATUS_IDLE;
         if (ena_shadow_fetch_valid) buffered_fetch_valid <= `FALSE;
@@ -131,6 +137,10 @@ always @(posedge clk) begin
                     addr_to_ram <= `ZERO_ADDR;
                     ram_access_pc <= addr_from_lsex;
                     wr_flag_to_ram <= `FLAG_WRITE;
+
+                    uart_write_is_io <= (addr_from_lsex == `RAM_IO_PORT);
+                    uart_write_lock <= `FALSE;
+                    
                     status <= STATUS_STORE;
                 end
                 else if (wr_flag_from_lsex == `FLAG_READ) begin
@@ -182,7 +192,7 @@ always @(posedge clk) begin
             end
         end
         // busy
-        else begin
+        else if (!(uart_full_from_ram && status_magic == STATUS_STORE)) begin
             // work
             if (status_magic == STATUS_FETCH) begin
                 // fetch inst
@@ -229,27 +239,35 @@ always @(posedge clk) begin
                 end
             end
             else if (status_magic == STATUS_STORE) begin
-                //store
-                addr_to_ram <= ram_access_pc;
-                wr_flag_to_ram <= `FLAG_WRITE;
-                case (ram_access_counter)
-                    32'h0:  data_o_to_ram <= writing_data[7:0];
-                    32'h1:  data_o_to_ram <= writing_data[15:8];
-                    32'h2:  data_o_to_ram <= writing_data[23:16];
-                    32'h3:  data_o_to_ram <= writing_data[31:24];
-                endcase
-                ram_access_pc <= (ram_access_counter >= ram_access_stop - 32'h1) ? `ZERO_ADDR : ram_access_pc + 32'h1;
+                if (uart_write_is_io == `FALSE || ~uart_write_lock) begin
+                    // lock the write port for 1 cycle
+                    uart_write_lock <= `TRUE;
+                    //store
+                    addr_to_ram <= ram_access_pc;
+                    wr_flag_to_ram <= `FLAG_WRITE;
+                    case (ram_access_counter)
+                        32'h0:  data_o_to_ram <= writing_data[7:0];
+                        32'h1:  data_o_to_ram <= writing_data[15:8];
+                        32'h2:  data_o_to_ram <= writing_data[23:16];
+                        32'h3:  data_o_to_ram <= writing_data[31:24];
+                    endcase
+                    ram_access_pc <= (ram_access_counter >= ram_access_stop - 32'h1) ? `ZERO_ADDR : ram_access_pc + 32'h1;
 
-                if (ram_access_counter == ram_access_stop) begin
-                    ok_flag_to_lsex <= `TRUE;
-                    status <= STATUS_IDLE;
-                    ram_access_pc <= `ZERO_ADDR;
-                    ram_access_counter <= `ZERO_WORD;
-                    addr_to_ram <= `ZERO_ADDR;
-                    wr_flag_to_ram <= `FLAG_READ;
+                    if (ram_access_counter == ram_access_stop) begin
+                        ok_flag_to_lsex <= `TRUE;
+                        status <= STATUS_IDLE;
+                        ram_access_pc <= `ZERO_ADDR;
+                        ram_access_counter <= `ZERO_WORD;
+                        addr_to_ram <= `ZERO_ADDR;
+                        wr_flag_to_ram <= `FLAG_READ;
+                    end
+                    else begin
+                        ram_access_counter <= ram_access_counter + 32'h1;
+                    end
                 end
-                else  begin
-                    ram_access_counter <= ram_access_counter + 32'h1;
+                else begin
+                    // free the lock, stall 1 cycle
+                    uart_write_lock <= `FALSE;
                 end
             end
         end

@@ -165,18 +165,18 @@ always @(posedge clk) begin
             V_to_reg <= data[head];
             rob_id_to_lsb <= head + 1;
             if (is_jump[head]) begin
-                // jump_cnt = jump_cnt + 1;
+                //jump_cnt = jump_cnt + 1;
                 ena_to_pdc <= `TRUE;
                 pc_to_pdc <= pc[head];
                 hit_to_pdc <= jump_flag[head];
                 // miss
                 if (jump_flag[head] ^ predicted_jump[head]) begin
-                    // wrong_cnt = wrong_cnt + 1;
+                //    wrong_cnt = wrong_cnt + 1;
                     rollback_flag <= `TRUE;
                     target_pc_to_if <= jump_flag[head] ? target_pc[head] : rollback_pc[head];
                 end
                 /*
-                if (jump_cnt % 1000 == 0) begin
+                if (jump_cnt % 10000 == 0) begin
                     $display("total %d, correct %d, wrong %d", jump_cnt, jump_cnt - wrong_cnt, wrong_cnt);
                 end
                 */

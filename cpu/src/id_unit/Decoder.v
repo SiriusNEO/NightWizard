@@ -12,6 +12,8 @@ module Decoder(
     output reg [`DATA_TYPE] imm
 );
 
+integer jalr_cnt = 0;
+
 always @(*) begin
     openum = `OPENUM_NOP;
     rd = inst[`RD_RANGE];
@@ -42,6 +44,8 @@ always @(*) begin
                 `OPCODE_JALR: begin
                     openum = `OPENUM_JALR;
                     is_jump = `TRUE;
+                    // jalr_cnt = jalr_cnt + 1;
+                    // if (jalr_cnt % 1000 == 0) $display("jalr: ", jalr_cnt);
                 end
                 `OPCODE_L: begin
                     case (inst[`FUNC3_RANGE])
