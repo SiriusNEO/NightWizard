@@ -26,11 +26,9 @@ Running on Basys3 FPGA Board (XC7A35T-ICPG236C) with all testcases passed.
 
 ### TO DO
 
-Version 3.0, expecting to add:
+more powerful NightWizard!
 
-- [ ]  Superscalar (issue two instructions in one cycle)
-- [ ]  Two RS & RS_EX or have a Branch RS.
-- [ ] lower the WNS, make 100MHz stable and try overclocking.
+- [ ]  Inst Queue (in Dispatcher)
 
 ### Docs
 

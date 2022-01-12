@@ -34,14 +34,13 @@ I waste too much time in considering how to design a elegant architecture, but I
 
 add:
 
-- icache
-- branch predictor
-- dcache（maybe）
+- iCache
+- Branch Predictor
 
 do some optimizations and use more elegant design on my CPU
 
-- [x] icache finished
-- [x] branch predictor
+- [x] iCache finished
+- [x] Branch Predictor
 
 passed all testcases in FPGA board.
 
@@ -68,3 +67,18 @@ passed all testcases in FPGA board.
 | tak            | P      | 0.078    |
 | uartboom       | P      | 0.78     |
 
+
+
+### Version 3.0
+
+- [x] Instruction Queue
+
+  (lower the performance ??? )
+
+- [ ] DCache
+
+  (Still have bugs)
+
+- [ ] Multi EX
+
+- [ ] Multi Dispatch
