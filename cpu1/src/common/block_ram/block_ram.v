@@ -62,7 +62,8 @@ endmodule
 module single_port_ram_sync
 #(
   parameter ADDR_WIDTH = 6,
-  parameter DATA_WIDTH = 8
+  parameter DATA_WIDTH = 8,
+  parameter IS_INST_RAM = 1
 )
 (
   input  wire                  clk,
@@ -72,6 +73,7 @@ module single_port_ram_sync
   output wire [DATA_WIDTH-1:0] dout_a
 );
 
+(* ram_style = "block" *)
 reg [DATA_WIDTH-1:0] ram [2**ADDR_WIDTH-1:0];
 reg [ADDR_WIDTH-1:0] q_addr_a;
 
@@ -87,11 +89,12 @@ assign dout_a = ram[q_addr_a];
 // initialize ram content (for simulation)
 integer i;
 initial begin
-  for (i=0;i<2**ADDR_WIDTH;i=i+1) begin
-    ram[i] = 0;
-  end
-  $readmemh("/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu1/test/test.data", ram); // add test.data to vivado project or specify a valid file path
-
+    for (i=0;i<2**ADDR_WIDTH;i=i+1) begin
+          ram[i] = 0;
+    end
+    if (IS_INST_RAM) begin
+      $readmemh("/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu1/test/test.data", ram); // add test.data to vivado project or specify a valid file path
+    end
 end
 
 endmodule

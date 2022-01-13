@@ -189,6 +189,14 @@ wire [2: 0] size_ex_mc;
 wire ok_flag_mc_ex;
 wire [`DATA_TYPE] data_mc_ex;
 
+// ls_ex and data_ram
+wire ena_ex_ram1;
+wire [`DATA_RAM_ADDR_RANGE] addr_ex_ram1;
+wire [`DATA_TYPE] data_w_ex_ram1;
+wire wr_flag_ex_ram1;
+
+wire [`DATA_TYPE] data_r_ram1_ex;
+
 // cdb
 wire valid_rs_cdb1;
 wire [`ROB_ID_TYPE] rob_id_rs_cdb1;
@@ -204,7 +212,7 @@ wire jump_flag_rs_cdb2;
 
 wire valid_ls_cdb;
 wire [`ROB_ID_TYPE] rob_id_ls_cdb;
-wire [`DATA_TYPE] result_ls_cdb;
+wire [`DATA_TYPE] result_ls_cdb; 
 
 Fetcher fetcher (
   .clk(clk_in), 
@@ -533,12 +541,31 @@ LS_EX ls_ex(
   .ok_flag_from_mc(ok_flag_mc_ex),
   .data_from_mc(data_mc_ex),
 
+  // port with data_ram
+  .ena_to_ram1(ena_ex_ram1),
+    
+  .addr_to_ram1(addr_ex_ram1),
+  .data_w_to_ram1(data_w_ex_ram1),
+  .wr_flag_to_ram1(wr_flag_ex_ram1),
+    
+  .data_r_from_ram1(data_r_ram1_ex),
+
   // to cdb
   .valid(valid_ls_cdb),
   .result(result_ls_cdb),
 
   //jump
   .rollback_flag_from_rob(rollback_flag_bus)
+);
+
+data_ram ram1 (
+    .clk(clk_in),
+    .rst(rst_in),
+    .ena(ena_ex_ram1),
+    .wr_flag(wr_flag_ex_ram1), 
+    .addr_in(addr_ex_ram1),
+    .data_in(data_w_ex_ram1),
+    .data_out(data_r_ram1_ex)
 );
 
 ReOrderBuffer reOrderBuffer(

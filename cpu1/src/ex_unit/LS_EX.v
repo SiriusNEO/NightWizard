@@ -24,6 +24,15 @@ module LS_EX (
     input wire ok_flag_from_mc,
     input wire [`DATA_TYPE] data_from_mc,
 
+    // port with data_ram
+    output reg ena_to_ram1,
+    
+    output reg [`DATA_RAM_ADDR_RANGE] addr_to_ram1,
+    output reg [`DATA_TYPE] data_w_to_ram1,
+    output reg wr_flag_to_ram1,
+    
+    input wire [`DATA_TYPE] data_r_from_ram1,
+
     // to cdb
     output reg valid,
     output reg [`DATA_TYPE] result,
@@ -39,24 +48,17 @@ STATUS_LH = 2,
 STATUS_LW = 3,
 STATUS_LBU = 4,
 STATUS_LHU = 5,
-STATUS_STORE = 6;
+STATUS_STORE = 6,
+STATUS_RAM1_STALL = 7;
 
 reg [`STATUS_TYPE] status;
+// ram1 status
+reg ram1_working;
+
+// bss data load first time through ram0
+reg [2**(`DATA_RAM_ADDR_WIDTH-2)-1 : 0] not_in_bss;
 
 assign busy_to_lsb = (status != STATUS_IDLE || ena);
-
-// direct mapped dcache
-`define DCACHE_SIZE 64
-`define INDEX_RANGE 7:2
-`define TAG_RANGE 31:8
-
-reg cache_valid [`DCACHE_SIZE - 1 : 0];
-reg [`TAG_RANGE] tag_store [`DCACHE_SIZE - 1 : 0];
-reg [`DATA_TYPE] data_store [`DCACHE_SIZE - 1 : 0];
-
-wire write_hit = (openum >= `OPENUM_SB && openum <= `OPENUM_SW) && ((cache_valid[mem_addr[`INDEX_RANGE]] == `FALSE) || (tag_store[mem_addr[`INDEX_RANGE]] == mem_addr[`TAG_RANGE]));
-wire read_hit = (openum >= `OPENUM_LB && openum <= `OPENUM_LHU) && ((cache_valid[mem_addr[`INDEX_RANGE]] == `TRUE) && (tag_store[mem_addr[`INDEX_RANGE]] == mem_addr[`TAG_RANGE]));
-wire [`DATA_TYPE] read_data = (read_hit ? data_store[mem_addr[`INDEX_RANGE]] : `ZERO_WORD);
 
 // debug
 integer debug_ls_openum = -1;
@@ -69,24 +71,46 @@ integer i;
 always @(posedge clk) begin
     if (rst) begin
         ena_to_mc <= `FALSE;
+        ena_to_ram1 <= `FALSE;
         valid <= `FALSE;
         status <= STATUS_IDLE;
-        // dcache
-        for (i = 0; i < `DCACHE_SIZE; i=i+1) begin
-            cache_valid[i] <= `FALSE;
-            tag_store[i] <= `ZERO_ADDR;
-            data_store[i] <= `ZERO_WORD;
-        end
+        not_in_bss <= 0;
     end
     else if (~rdy) begin
     end
     else begin
+        valid <= `FALSE;
+        ena_to_mc <= `FALSE;
+        ena_to_ram1 <= `FALSE;
+
         if (status != STATUS_IDLE) begin
-            ena_to_mc <= `FALSE;    
+            // rollback interrupt
             if (rollback_flag_from_rob && status != STATUS_STORE) begin
                 status <= STATUS_IDLE;
             end
             else begin
+                // ram1 finish
+                if (ram1_working) begin
+                    if (status == STATUS_RAM1_STALL) begin
+                        status <= STATUS_LW;
+                    end    
+                    else begin
+                        if (status != STATUS_STORE) begin
+                            valid <= `TRUE;
+                            case (status)
+                                STATUS_LB: result <= {{25{data_r_from_ram1[7]}}, data_r_from_ram1[6:0]};
+                                STATUS_LH: result <= {{17{data_r_from_ram1[15]}}, data_r_from_ram1[14:0]};
+                                STATUS_LW: result <= data_r_from_ram1;
+                                STATUS_LBU: result <= {24'b0, data_r_from_ram1[7:0]};
+                                STATUS_LHU: result <= {16'b0, data_r_from_ram1[15:0]};
+                            endcase
+                        end
+                        ram1_working <= `FALSE;
+                        status <= STATUS_IDLE;
+                    end
+                end
+                
+                // memctrl finish
                 if (ok_flag_from_mc) begin
                     if (status != STATUS_STORE) begin
                         valid <= `TRUE;
@@ -103,132 +127,95 @@ always @(posedge clk) begin
             end
         end
         else begin
-            valid <= `FALSE;
-            ena_to_mc <= `FALSE;
             if (ena == `FALSE || openum == `OPENUM_NOP) begin
+                ram1_working <= `FALSE;
             end
+            // use the origin ram
+            // 1. I/O
+            // 2. PROGRAM_END 
+            // 3. B/H
+            // 4. load in bss (!not in bss)
+            else if (mem_addr == `RAM_IO_PORT 
+                    || mem_addr == `PROGRAM_END
+                    || (openum != `OPENUM_LW && openum != `OPENUM_SW) 
+                    || (openum == `OPENUM_LW && ~not_in_bss[mem_addr[`DATA_RAM_INDEX_RANGE]]) ) begin
+                ena_to_mc <= `TRUE;
+                ram1_working <= `FALSE;
+
+                case (openum)
+                    `OPENUM_LB: begin
+                        addr_to_mc <= mem_addr;
+                        wr_flag_to_mc <= `FLAG_READ;
+                        size_to_mc <= 1;
+                        status <= STATUS_LB;
+                    end
+                    `OPENUM_LH: begin
+                        addr_to_mc <= mem_addr;
+                        wr_flag_to_mc <= `FLAG_READ;
+                        size_to_mc <= 2;
+                        status <= STATUS_LH;
+                    end 
+                    `OPENUM_LW: begin
+                        addr_to_mc <= mem_addr;
+                        wr_flag_to_mc <= `FLAG_READ;
+                        size_to_mc <= 4;
+                        status <= STATUS_LW;
+                    end 
+                    `OPENUM_LBU: begin
+                        addr_to_mc <= mem_addr;
+                        wr_flag_to_mc <= `FLAG_READ;
+                        size_to_mc <= 2;
+                        status <= STATUS_LBU;
+                    end 
+                    `OPENUM_LHU: begin
+                        addr_to_mc <= mem_addr;
+                        wr_flag_to_mc <= `FLAG_READ;
+                        size_to_mc <= 4;
+                        status <= STATUS_LHU;
+                    end 
+                    `OPENUM_SB: begin
+                        addr_to_mc <= mem_addr;
+                        data_to_mc <= store_value;
+                        wr_flag_to_mc <= `FLAG_WRITE;
+                        size_to_mc <= 1;
+                        status <= STATUS_STORE;
+                    end 
+                    `OPENUM_SH: begin
+                        addr_to_mc <= mem_addr;
+                        data_to_mc <= store_value;
+                        wr_flag_to_mc <= `FLAG_WRITE;
+                        size_to_mc <= 2;
+                        status <= STATUS_STORE;
+                    end 
+                    `OPENUM_SW: begin
+                        addr_to_mc <= mem_addr;
+                        data_to_mc <= store_value;
+                        wr_flag_to_mc <= `FLAG_WRITE;
+                        size_to_mc <= 4;
+                        status <= STATUS_STORE;
+                    end
+                endcase
+            end
+            // LW/SW: use new ram
+            // promise that lw/sw and lb/sb no conflict
             else begin
-                if (mem_addr != `RAM_IO_PORT && mem_addr != `PROGRAM_END && (write_hit || read_hit)) begin
-                    if (write_hit) begin
-                        cache_valid[mem_addr[`INDEX_RANGE]] <= `TRUE;
-                        tag_store[mem_addr[`INDEX_RANGE]] <= mem_addr[`TAG_RANGE];
-                        // data_store[mem_addr[`INDEX_RANGE]] <= store_value;
-                        case (openum)
-                            `OPENUM_SB: begin
-                                case (mem_addr[1:0])
-                                    2'b00: data_store[mem_addr[`INDEX_RANGE]][7:0] <= store_value[7:0];
-                                    2'b01: data_store[mem_addr[`INDEX_RANGE]][15:8] <= store_value[7:0];
-                                    2'b10: data_store[mem_addr[`INDEX_RANGE]][23:16] <= store_value[7:0];
-                                    2'b11: data_store[mem_addr[`INDEX_RANGE]][31:24] <= store_value[7:0];
-                                endcase
-                            end
-                            `OPENUM_SH: 
-                                case (mem_addr[1:0])
-                                    2'b00: data_store[mem_addr[`INDEX_RANGE]][15:0] <= store_value[15:0];
-                                    2'b10: data_store[mem_addr[`INDEX_RANGE]][31:16] <= store_value[15:0];
-                                endcase
-                            // data_store[mem_addr[`INDEX_RANGE]][15:0] <= store_value[15:0];
-                            `OPENUM_SW: data_store[mem_addr[`INDEX_RANGE]] <= store_value;
-                        endcase
+                ena_to_ram1 <= `TRUE;
+                ram1_working <= `TRUE;
+
+                case (openum)
+                    `OPENUM_LW: begin
+                        addr_to_ram1 <= mem_addr[`DATA_RAM_ADDR_RANGE];
+                        wr_flag_to_ram1 <= `FLAG_READ;
+                        status <= STATUS_RAM1_STALL;
                     end
-                    else if (read_hit) begin
-                        valid <= `TRUE;
-                        case (openum)
-                            `OPENUM_LB: begin
-                                case (mem_addr[1:0])
-                                    2'b00: result <= {{25{read_data[7]}}, read_data[6:0]};
-                                    2'b01: result <= {{25{read_data[15]}}, read_data[14:8]};
-                                    2'b10: result <= {{25{read_data[23]}}, read_data[22:16]};
-                                    2'b11: result <= {{25{read_data[31]}}, read_data[30:24]};
-                                endcase
-                            end
-                            // result <= {{25{read_data[7]}}, read_data[6:0]};
-                            `OPENUM_LH: 
-                                case (mem_addr[1:0])
-                                    2'b00: result <= {{17{read_data[15]}}, read_data[14:0]};
-                                    2'b10: result <= {{17{read_data[31]}}, read_data[30:16]};
-                                endcase
-                            // result <= {{17{read_data[15]}}, read_data[14:0]};
-                            `OPENUM_LW: result <= read_data;
-                            `OPENUM_LBU: begin
-                                case (mem_addr[1:0])
-                                    2'b00: result <= {24'b0, read_data[7:0]};
-                                    2'b01: result <= {24'b0, read_data[15:8]};
-                                    2'b10: result <= {24'b0, read_data[23:16]};
-                                    2'b11: result <= {24'b0, read_data[31:24]};
-                                endcase
-                            end
-                            // result <= {24'b0, read_data[7:0]};
-                            `OPENUM_LHU: 
-                                case (mem_addr[1:0])
-                                    2'b00: result <= {16'b0, read_data[15:0]};
-                                    2'b10: result <= {16'b0, read_data[31:16]};
-                                endcase
-                            // result <= {16'b0, read_data[15:0]};
-                        endcase
+                    `OPENUM_SW: begin
+                        not_in_bss[mem_addr[`DATA_RAM_INDEX_RANGE]] <= 1;
+                        addr_to_ram1 <= mem_addr[`DATA_RAM_ADDR_RANGE];
+                        data_w_to_ram1 <= store_value;
+                        wr_flag_to_ram1 <= `FLAG_WRITE;
+                        status <= STATUS_STORE;
                     end
-                end
-                else begin
-                    ena_to_mc <= `TRUE;
-                    case (openum)
-                        `OPENUM_LB: begin
-                            addr_to_mc <= mem_addr;
-                            wr_flag_to_mc <= `FLAG_READ;
-                            size_to_mc <= 1;
-                            status <= STATUS_LB;
-                        end
-                        `OPENUM_LH: begin
-                            addr_to_mc <= mem_addr;
-                            wr_flag_to_mc <= `FLAG_READ;
-                            size_to_mc <= 2;
-                            status <= STATUS_LH;
-                        end 
-                        `OPENUM_LW: begin
-                            addr_to_mc <= mem_addr;
-                            wr_flag_to_mc <= `FLAG_READ;
-                            size_to_mc <= 4;
-                            status <= STATUS_LW;
-                        end 
-                        `OPENUM_LBU: begin
-                            addr_to_mc <= mem_addr;
-                            wr_flag_to_mc <= `FLAG_READ;
-                            size_to_mc <= 2;
-                            status <= STATUS_LBU;
-                        end 
-                        `OPENUM_LHU: begin
-                            addr_to_mc <= mem_addr;
-                            wr_flag_to_mc <= `FLAG_READ;
-                            size_to_mc <= 4;
-                            status <= STATUS_LHU;
-                        end 
-                        `OPENUM_SB: begin
-                            addr_to_mc <= mem_addr;
-                            data_to_mc <= store_value;
-                            wr_flag_to_mc <= `FLAG_WRITE;
-                            size_to_mc <= 1;
-                            status <= STATUS_STORE;
-                        end 
-                        `OPENUM_SH: begin
-                            addr_to_mc <= mem_addr;
-                            data_to_mc <= store_value;
-                            wr_flag_to_mc <= `FLAG_WRITE;
-                            size_to_mc <= 2;
-                            status <= STATUS_STORE;
-                        end 
-                        `OPENUM_SW: begin
-                            addr_to_mc <= mem_addr;
-                            data_to_mc <= store_value;
-                            wr_flag_to_mc <= `FLAG_WRITE;
-                            size_to_mc <= 4;
-                            status <= STATUS_STORE;
-                        end
-                    endcase
-    `ifdef DEBUG
-                        debug_ls_openum <= openum;
-                        debug_ls_data <= store_value;
-                        debug_ls_addr <= mem_addr;
-    `endif
-                end
+                endcase
             end
         end
     end

@@ -75,10 +75,10 @@ passed all testcases in FPGA board.
 
   (lower the performance ??? )
 
-- [ ] DCache
+- [x] DCache 
 
-  (Still have bugs)
+- [x] Multi EX
 
-- [ ] Multi EX
+- [ ] ~~Multi Dispatch~~
 
-- [ ] Multi Dispatch
+- [x] Two Rams, 32bit-bus

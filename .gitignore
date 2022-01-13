@@ -3,8 +3,15 @@ cpu/testcase_selfmade/
 cpu/testcase_sim/
 cpu/test/
 cpu/out/
+cpu1/testcase/
+cpu1/testcase_selfmade/
+cpu1/testcase_sim/
+cpu1/test/
+cpu1/out/
 bit/*
 NightWizard.xpr
 NightWizard.*/
 .vscode/
 serial/
+vivado/
+Harvard/

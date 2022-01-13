@@ -36,7 +36,7 @@ if [ -f ./testcase_selfmade/$@.ans ]; then cp ./testcase_selfmade/$@.ans ./test/
 # - diff ./test/test.ans ./test/test.out
 
 # compile
-iverilog src/cpu.v src/ram.v src/riscv_top.v src/hci.v src/common/*/*.v sim/testbench.v -o out/a.out
+iverilog src/cpu.v src/ram.v src/data_ram.v src/riscv_top.v src/hci.v src/common/*/*.v sim/testbench.v -o out/a.out
 cd out
 
 # diff

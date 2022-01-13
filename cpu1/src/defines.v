@@ -14,6 +14,11 @@
 `define RAM_IO_PORT 32'h30000
 `define PROGRAM_END 32'h30004
 
+// data ram spec
+`define DATA_RAM_ADDR_WIDTH 16
+`define DATA_RAM_ADDR_RANGE 15:0
+`define DATA_RAM_INDEX_RANGE 15:2
+
 // constant
 `define FALSE 1'b0
 `define TRUE 1'b1
