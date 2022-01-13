@@ -53,7 +53,7 @@ assign predicted_jump = (
 always @(posedge clk) begin
     if (rst) begin
         for (i = 0; i < BHT_SIZE; i=i+1) begin
-            branch_history_table[i] <= WEAKLY_TAKEN;
+            branch_history_table[i] <= WEAKLY_NOT_TAKEN;
         end
     end
     else if (ena_from_rob) begin

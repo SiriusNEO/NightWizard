@@ -112,6 +112,7 @@ wire ena_dsp_rob;
 wire [`REG_POS_TYPE] rd_dsp_rob;
 wire is_jump_dsp_rob;
 wire is_store_dsp_rob;
+wire is_branch_dsp_rob;
 wire predicted_jump_dsp_rob;
 wire [`ADDR_TYPE] pc_dsp_rob;
 wire [`ADDR_TYPE] rollback_pc_dsp_rob;
@@ -323,6 +324,7 @@ Dispatcher dispatcher(
   .rd_to_rob(rd_dsp_rob),
   .is_jump_to_rob(is_jump_dsp_rob),
   .is_store_to_rob(is_store_dsp_rob),
+  .is_branch_to_rob(is_branch_dsp_rob),
   .predicted_jump_to_rob(predicted_jump_dsp_rob),
   .pc_to_rob(pc_dsp_rob),
   .rollback_pc_to_rob(rollback_pc_dsp_rob),
@@ -588,6 +590,7 @@ ReOrderBuffer reOrderBuffer(
   .ena_from_dsp(ena_dsp_rob),
   .is_jump_from_dsp(is_jump_dsp_rob),
   .is_store_from_dsp(is_store_dsp_rob),
+  .is_branch_from_dsp(is_branch_dsp_rob),
   .rd_from_dsp(rd_dsp_rob),
   .predicted_jump_from_dsp(predicted_jump_dsp_rob),
   .pc_from_dsp(pc_dsp_rob),

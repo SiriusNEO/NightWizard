@@ -56,7 +56,7 @@ reg [`STATUS_TYPE] status;
 reg ram1_working;
 
 // bss data load first time through ram0
-reg [2**(`DATA_RAM_ADDR_WIDTH-2)-1 : 0] not_in_bss;
+reg not_in_bss [`BSS_SIZE-1 : 0];
 
 assign busy_to_lsb = (status != STATUS_IDLE || ena);
 
@@ -74,7 +74,9 @@ always @(posedge clk) begin
         ena_to_ram1 <= `FALSE;
         valid <= `FALSE;
         status <= STATUS_IDLE;
-        not_in_bss <= 0;
+        for (i = 0; i < `BSS_SIZE; i = i+1) begin
+            not_in_bss[i] <= `FALSE;
+        end
     end
     else if (~rdy) begin
     end
@@ -138,7 +140,8 @@ always @(posedge clk) begin
             else if (mem_addr == `RAM_IO_PORT 
                     || mem_addr == `PROGRAM_END
                     || (openum != `OPENUM_LW && openum != `OPENUM_SW) 
-                    || (openum == `OPENUM_LW && ~not_in_bss[mem_addr[`DATA_RAM_INDEX_RANGE]]) ) begin
+                    || (openum == `OPENUM_LW && ~not_in_bss[mem_addr[`BSS_INDEX]])
+                     ) begin
                 ena_to_mc <= `TRUE;
                 ram1_working <= `FALSE;
 
@@ -209,7 +212,7 @@ always @(posedge clk) begin
                         status <= STATUS_RAM1_STALL;
                     end
                     `OPENUM_SW: begin
-                        not_in_bss[mem_addr[`DATA_RAM_INDEX_RANGE]] <= 1;
+                        not_in_bss[mem_addr[`BSS_INDEX]] <= 1;
                         addr_to_ram1 <= mem_addr[`DATA_RAM_ADDR_RANGE];
                         data_w_to_ram1 <= store_value;
                         wr_flag_to_ram1 <= `FLAG_WRITE;

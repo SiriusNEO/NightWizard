@@ -17,7 +17,8 @@
 // data ram spec
 `define DATA_RAM_ADDR_WIDTH 16
 `define DATA_RAM_ADDR_RANGE 15:0
-`define DATA_RAM_INDEX_RANGE 15:2
+`define BSS_INDEX 6:2
+`define BSS_SIZE 32
 
 // constant
 `define FALSE 1'b0

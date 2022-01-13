@@ -19,6 +19,7 @@ module ReOrderBuffer (
     // from dsp
     input wire ena_from_dsp,
     input wire is_jump_from_dsp,
+    input wire is_branch_from_dsp,
     input wire is_store_from_dsp,
     input wire [`REG_POS_TYPE] rd_from_dsp,
     input wire predicted_jump_from_dsp,
@@ -84,7 +85,6 @@ wire [`ROB_POS_TYPE] next_head = (head == `ROB_SIZE - 1) ? 0 : head + 1,
 
 reg [`ROB_SIZE - 1 : 0] busy;
 reg [`ROB_SIZE - 1 : 0] ready;
-reg [`ROB_SIZE - 1 : 0] is_io;
 reg [`ROB_SIZE - 1 : 0] predicted_jump;
 reg [`ADDR_TYPE] pc [`ROB_SIZE - 1 : 0];
 reg [`REG_POS_TYPE] rd [`ROB_SIZE - 1 : 0];
@@ -92,7 +92,10 @@ reg [`DATA_TYPE] data [`ROB_SIZE - 1 : 0];
 reg [`ADDR_TYPE] target_pc [`ROB_SIZE - 1 : 0];
 reg [`ADDR_TYPE] rollback_pc [`ROB_SIZE - 1 : 0];
 reg [`ROB_SIZE - 1 : 0] jump_flag;
+
+reg [`ROB_SIZE - 1 : 0] is_io;
 reg [`ROB_SIZE - 1 : 0] is_jump;
+reg [`ROB_SIZE - 1 : 0] is_branch;
 reg [`ROB_SIZE - 1 : 0] is_store;
 
 reg [`ROB_POS_TYPE] rob_element_cnt;
@@ -149,6 +152,7 @@ always @(posedge clk) begin
             jump_flag[i] <= `FALSE;
             is_jump[i] <= `FALSE;
             is_store[i] <= `FALSE;
+            is_branch[i] <= `FALSE;
         end
         commit_flag <= `FALSE;
         rollback_flag <= `FALSE;
@@ -171,18 +175,20 @@ always @(posedge clk) begin
             V_to_reg <= data[head];
             rob_id_to_lsb <= head + 1;
             if (is_jump[head]) begin
-                // jump_cnt = jump_cnt + 1;
-                ena_to_pdc <= `TRUE;
-                pc_to_pdc <= pc[head];
-                hit_to_pdc <= jump_flag[head];
+                if (is_branch[head]) begin
+                    // jump_cnt <= jump_cnt + 1;
+                    ena_to_pdc <= `TRUE;
+                    pc_to_pdc <= pc[head];
+                    hit_to_pdc <= jump_flag[head];
+                end
                 // miss
                 if (jump_flag[head] ^ predicted_jump[head]) begin
-                    // wrong_cnt = wrong_cnt + 1;
+                    // if (is_branch[head]) wrong_cnt = wrong_cnt + 1;
                     rollback_flag <= `TRUE;
                     target_pc_to_if <= jump_flag[head] ? target_pc[head] : rollback_pc[head];
                 end
                 /*
-                if (jump_cnt % 1000 == 0) begin
+                if (jump_cnt % 10000 == 0) begin
                     $display("total %d, correct %d, wrong %d", jump_cnt, jump_cnt - wrong_cnt, wrong_cnt);
                 end
                 */
@@ -192,6 +198,7 @@ always @(posedge clk) begin
             is_io[head] <= `FALSE;
             is_jump[head] <= `FALSE;
             is_store[head] <= `FALSE;
+            is_branch[head] <= `FALSE;
             predicted_jump[head] <= `FALSE;
             head <= next_head;
 `ifdef DEBUG
@@ -230,6 +237,7 @@ always @(posedge clk) begin
             // insert
             busy[tail] <= `TRUE;
             is_io[tail] <= `FALSE;
+            
             predicted_jump[tail] <= predicted_jump_from_dsp;
             pc[tail] <= pc_from_dsp;
             rd[tail] <= rd_from_dsp;
@@ -237,8 +245,11 @@ always @(posedge clk) begin
             target_pc[tail] <= `ZERO_ADDR;
             rollback_pc[tail] <= rollback_pc_from_dsp;
             ready[tail] <= `FALSE;
+
             is_jump[tail] <= is_jump_from_dsp;
             is_store[tail] <= is_store_from_dsp;
+            is_branch[tail] <= is_branch_from_dsp;
+            
             jump_flag[tail] <= `FALSE;
             tail <= next_tail;
 `ifdef DEBUG
