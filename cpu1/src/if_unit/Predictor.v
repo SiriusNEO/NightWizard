@@ -16,8 +16,11 @@ module Predictor (
     input wire [`ADDR_TYPE] pc_from_rob
 );
 
-localparam ADDR_CUT_LEN = 8, BHT_SIZE = 256, BIT = 2, PATTERN_LEN = 6;
-`define ADDR_CUT 9:2
+localparam INDEX_LEN = 8, BHT_SIZE = 256;
+
+// `define INDEX_RANGE 9:2
+`define INDEX_TYPE 7:0
+
 localparam STRONG_NOT_TAKEN = 2'b00,
            WEAKLY_NOT_TAKEN = 2'b01,
            WEAKLY_TAKEN = 2'b10,
@@ -26,9 +29,10 @@ localparam STRONG_NOT_TAKEN = 2'b00,
 wire [`DATA_TYPE] JImm = {{12{query_inst[31]}}, query_inst[19:12], query_inst[20], query_inst[30:21], 1'b0};
 wire [`DATA_TYPE] BImm = {{20{query_inst[31]}}, query_inst[7:7], query_inst[30:25], query_inst[11:8], 1'b0};
 
-reg [BIT - 1 : 0] branch_history_table [BHT_SIZE - 1 : 0];
+reg [1 : 0] bht [BHT_SIZE - 1 : 0];
 
-wire [`ADDR_CUT] cut_pc = pc_from_rob[`ADDR_CUT];
+wire [`INDEX_TYPE] query_index = query_pc[9:2];
+wire [`INDEX_TYPE] upd_index = pc_from_rob[9:2];
 
 // index
 integer i;
@@ -38,9 +42,10 @@ integer i;
 
 assign predicted_jump = (query_inst[`OPCODE_RANGE] == `OPCODE_JAL) ? `TRUE :
                 (query_inst[`OPCODE_RANGE] == `OPCODE_BR ? 
-                (branch_history_table[query_pc[`ADDR_CUT]][1]) : `FALSE);
+                (bht[query_index][1]) : `FALSE);
 
 assign predicted_imm = (query_inst[`OPCODE_RANGE] == `OPCODE_JAL ? JImm : BImm);
+
 /*
 assign predicted_jump = (
                         (query_inst[`OPCODE_RANGE] == `OPCODE_JAL || query_inst[`OPCODE_RANGE] == `OPCODE_BR) ? 
@@ -52,18 +57,20 @@ assign predicted_jump = (
 // update port
 always @(posedge clk) begin
     if (rst) begin
+        // init with weakly not taken
         for (i = 0; i < BHT_SIZE; i=i+1) begin
-            branch_history_table[i] <= WEAKLY_NOT_TAKEN;
+            bht[i] <= WEAKLY_NOT_TAKEN;
         end
     end
     else if (ena_from_rob) begin
         // update
-        branch_history_table[cut_pc] <= branch_history_table[cut_pc] + 
+
+        bht[upd_index] <= bht[upd_index] + 
         ((hit_from_rob) ? 
         // hit 
-        (branch_history_table[cut_pc] == STRONG_TAKEN ? 0 : 1) : 
+        (bht[upd_index] == STRONG_TAKEN ? 0 : 1) : 
         // miss 
-        (branch_history_table[cut_pc] == STRONG_NOT_TAKEN ? 0 : -1));
+        (bht[upd_index] == STRONG_NOT_TAKEN ? 0 : -1));
     end
 end
 
