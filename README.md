@@ -25,7 +25,7 @@ Running on Basys3 FPGA Board (XC7A35T-ICPG236C) with all testcases passed.
   | Performance        | with `pi.c` passed in `1.6s` averagely                       |
   | Ram                | 128 KiB BRAM (total: 32/50)                                  |
 
-- MegaWizard (an experimental trial)
+- Mega NightWizard (an experimental trial)
 
   | Feature            | Detail                                                       |
   | ------------------ | ------------------------------------------------------------ |
@@ -56,7 +56,7 @@ Some units I do not add into my final version for some reasons:
 
 | Units                               | Shortage                                                     |
 | ----------------------------------- | ------------------------------------------------------------ |
-| Instruction Queue                   | Maybe helpful if I have multiple decoders, but with iCache it do little help |
+| Instruction Queue                   | Maybe helpful if I have multiple decoders, but with iCache it does little help |
 | Directly Mapped D-Cache             | Not efficient as I expected                                  |
 | Two-Level Adaptive Branch Predictor | Efficient (in simulation) but take too many resources, hard to synthesis |
 
