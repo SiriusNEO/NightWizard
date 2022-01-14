@@ -52,7 +52,7 @@ passed all testcases in FPGA board.
 | bulgarian      | P      | 1.79     |
 | expr           | P      | 0.02     |
 | gcd            | P      | 0.012    |
-| hanoiP         | P      | 3.42     |
+| hanoi          | P      | 3.42     |
 | heart          | P      | 591.27   |
 | looper         | P      | 0.042    |
 | lvalue2        | P      | 0.005    |
