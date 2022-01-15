@@ -60,6 +60,13 @@ Some units I do not add into my final version for some reasons:
 | Directly Mapped D-Cache             | Not efficient as I expected                                  |
 | Two-Level Adaptive Branch Predictor | Efficient (in simulation) but take too many resources, hard to synthesis |
 
+### Overclocking
+
+(**not always stable**)
+
+- NightWizard in 120MHz  see `bit/NightWizard_120MHz.bit` 
+- with `pi.c` passed in `1.37s` 
+
 ### Other Docs
 
 - [Versions Info and Performance](doc/Version.md)

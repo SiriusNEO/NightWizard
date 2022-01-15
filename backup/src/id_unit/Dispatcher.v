@@ -1,5 +1,5 @@
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu/src/id_unit/Decoder.v"
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/defines.v"
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu/src/id_unit/Decoder.v"
 
 module Dispatcher(
     input wire clk,

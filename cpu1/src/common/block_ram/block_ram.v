@@ -93,7 +93,7 @@ initial begin
           ram[i] = 0;
     end
     if (IS_INST_RAM) begin
-      $readmemh("/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu1/test/test.data", ram); // add test.data to vivado project or specify a valid file path
+      $readmemh("C:/Users/17138/Desktop/CPU/NightWizard/cpu1/test/test.data", ram); // add test.data to vivado project or specify a valid file path
     end
 end
 

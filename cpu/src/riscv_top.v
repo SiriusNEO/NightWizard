@@ -13,7 +13,7 @@ module riscv_top
 	output wire			led
 );
 
-localparam SYS_CLK_FREQ = 100000000;
+localparam SYS_CLK_FREQ = 120000000;
 localparam UART_BAUD_RATE = 115200;
 localparam RAM_ADDR_WIDTH = 17; 			// 128KiB ram, should not be modified
 
@@ -25,16 +25,14 @@ wire clk;
 wire locked;
 
 // assign EXCLK (or your own clock module) to clk
-assign clk = EXCLK;
+// assign clk = EXCLK;
 
-/*
 clk_wiz_1 NEW_CLOCK(
     .reset(btnC),
     .clk_in1(EXCLK),
     .clk_out1(clk),
     .locked(locked)
 );
-*/
 
 always @(posedge clk or posedge btnC)
 begin

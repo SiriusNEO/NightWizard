@@ -1,4 +1,4 @@
-`include "/mnt/c/Users/17138/Desktop/CPU/NightWizard/cpu1/src/defines.v"
+`include "C:/Users/17138/Desktop/CPU/NightWizard/cpu1/src/defines.v"
 
 module RS_EX(
     input wire [`OPENUM_TYPE] openum,
