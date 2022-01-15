@@ -83,7 +83,7 @@ Simulation (compared with version 2.0):
 | --------- | ----------- | ----------- |
 | superloop | 1786289     | 1376519     |
 | basicopt1 | 2143659     | 1650793     |
-| magic     | 1909529     | 5683183     |
+| magic     | 5683183     | 1909529     |
 
 On Board:
 
@@ -101,5 +101,5 @@ On Board:
 
   My solution is not perfect, so there are some problems if the code has too many global variables!
 
-- Byte and Half Word will be dispatched to ram0 because of the bus width.
+- Byte and Half Word will be dispatched to ram0 because of the bus width.  
 
